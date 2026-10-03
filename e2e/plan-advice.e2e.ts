@@ -3,10 +3,12 @@ import {
 	AUTOSAVE_MS,
 	budgetField,
 	closeTaskForm,
+	drainForm,
 	isoDate,
 	logFlow,
 	openDrainEditor,
 	openTaskForm,
+	plantRunningTimer,
 	rowDrainForm,
 	setBudget,
 	taskCard,
@@ -313,6 +315,60 @@ test('the task the advisor moves leaves today', async ({ page }) => {
 	await apply.click();
 
 	await expect(taskRow(page, title)).toHaveCount(0);
+});
+
+/* The move takes the row's editors with it (`moveTaskToTomorrow` on `/`). A 🪫 draft left
+   behind would keep the stopped reading claimed for a row that is gone, and the next
+   editor opened would come up empty with nobody left to spend it. */
+test('the task the advisor moves hands back the reading its editor held', async ({ page }) => {
+	const titles = ['Write the spec', 'Migrate the database', 'Refactor the auth flow'];
+
+	await page.goto('/');
+
+	for (const title of titles) await addDrainingTask(page, title);
+
+	await setBudget(page, 4);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	const apply = page
+		.getByRole('button', {
+			name: /Move “.+” to tomorrow/,
+		})
+		.first();
+
+	await expect(apply).toBeVisible();
+	const title = (await apply.getAttribute('aria-label'))!.match(/“(.+)”/)![1];
+
+	// The row the advisor is about to move claims the reading…
+	await openDrainEditor(page, title);
+	await expect(rowDrainForm(page, title).locator('input[type="number"]').first()).toHaveValue('45');
+
+	await apply.click();
+
+	await expect(taskRow(page, title)).toHaveCount(0);
+
+	// …and the move hands it back: a row that stays opens on it.
+	await openDrainEditor(
+		page,
+		titles.find((other) => other !== title)!,
+	);
+
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
 });
 
 /* The bound on the move: 🪫 hours join by task id, so a row that leaves takes its

@@ -11,8 +11,8 @@
    one editor PER MEASUREMENT and stacks them with that row's ✎, so nothing but this
    row's own open prompt can hold its own question back. The two calls differ only in
    what `measured` reads — ⚡ the day's one number, 🪫 a log on the day being viewed.
-   A predicate is also the only way this gets a unit test; the rest of it is a route,
-   where nothing can reach it. */
+   A predicate is also the only way this gets a unit test; the drafts it opens and
+   withdraws are `MeasurementEditors`' (measurement-editor.svelte.ts). */
 
 import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 

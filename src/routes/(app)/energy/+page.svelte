@@ -5,20 +5,7 @@
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
-	import {
-		removeFlowLogWithUndo,
-		removeLogWithUndo,
-	} from '$lib/presentation/utils/remove-log-with-undo';
-	import {
-		claimPendingMinutes,
-		drainDraftFromLog,
-		newDrainDraft,
-		newEditorDraft,
-		spendsPendingMinutes,
-		type DrainDraft,
-		type EditorDraft,
-		type EditorSource,
-	} from '$lib/presentation/utils/measurement-prompt';
+	import { MeasurementEditors } from '$lib/presentation/utils/measurement-editor.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import { seriesColors } from '$lib/presentation/utils/series-color';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
@@ -45,8 +32,7 @@
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
-	import { getPendingMinutes, suggestTargetMinutes } from '$lib/business/utils/session-timer';
-	import type { DrainObservationRecord, Persisted } from '$lib/business/type';
+	import { suggestTargetMinutes } from '$lib/business/utils/session-timer';
 
 	const VIEW_KEY = 'zenith-energy-view';
 
@@ -125,72 +111,17 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// Why: presentation/AGENTS.md, "Both editors are open only while the PAGE holds a draft for that task"
-	let flowDrafts = $state<Record<number, EditorDraft>>({});
-	let drainDrafts = $state<Record<number, DrainDraft>>({});
-
-	const openFlowLog = (taskId: number, source: EditorSource) =>
-		(flowDrafts[taskId] = newEditorDraft(source));
-
-	const closeFlowLog = (taskId: number) => {
-		delete flowDrafts[taskId];
-	};
-
-	function saveFlowLog(taskId: number, minutes: number) {
-		session.logFlow(taskId, minutes);
-		closeFlowLog(taskId);
-	}
-
-	function clearFlowLog(taskId: number) {
-		removeFlowLogWithUndo(session, taskId);
-		closeFlowLog(taskId);
-	}
-
-	const closeDrainLog = (taskId: number) => {
-		delete drainDrafts[taskId];
-	};
+	const editors = new MeasurementEditors(session, observations, timerStore);
 
 	// ✕ then Undo restores the task under its original id, so a surviving draft re-opens with it.
 	function removeTask(taskId: number) {
-		closeFlowLog(taskId);
-		closeDrainLog(taskId);
+		editors.dropDrafts(taskId);
 		removeTaskWithUndo(session, taskId);
 	}
 
 	// This route is today-only — a dated URL redirects (`energy/+page.ts`).
 	const drainLogs = $derived(observations.drainLogsOn(session.today));
 	const flowLogs = $derived(session.flowMinutesOn(session.today));
-
-	// The stopped timer seeds the 🪫 editors here under the same claim (one stop funds
-	// one log), whichever screen stopped it.
-	const openDrainLog = (taskId: number, source: EditorSource) =>
-		(drainDrafts[taskId] = newDrainDraft(
-			source,
-			claimPendingMinutes(drainDrafts, getPendingMinutes(timerStore.timer)),
-		));
-
-	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
-		(drainDrafts[taskId] = drainDraftFromLog(log));
-
-	// Only the draft remembers whether a chip opened it, so new-vs-correction is the page's.
-	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
-		const draft = drainDrafts[taskId];
-
-		if (draft.recordId === undefined) {
-			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
-
-			if (spendsPendingMinutes(draft, getPendingMinutes(timerStore.timer))) timerStore.timer = null;
-		} else {
-			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
-		}
-
-		closeDrainLog(taskId);
-	}
-
-	function deleteDrainLog(taskId: number, recordId: number) {
-		removeLogWithUndo(session, observations, 'drain', recordId);
-		closeDrainLog(taskId);
-	}
 
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
 
@@ -378,20 +309,20 @@
 			plannedHours={plannedFor(task.id)}
 			flowMinutes={flowLogs.get(task.id)}
 			drainLogs={drainLogs.get(task.id) ?? []}
-			flowDraft={flowDrafts[task.id] ?? null}
-			drainDraft={drainDrafts[task.id] ?? null}
+			flowDraft={editors.flowDrafts[task.id] ?? null}
+			drainDraft={editors.drainDrafts[task.id] ?? null}
 			ontoggle={() => session.toggleTask(task.id)}
 			onremove={() => removeTask(task.id)}
-			onflowopen={(source) => openFlowLog(task.id, source)}
-			onflowedit={() => openFlowLog(task.id, 'button')}
-			onflowclose={() => closeFlowLog(task.id)}
-			onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
-			onflowdelete={() => clearFlowLog(task.id)}
-			ondrainopen={(source) => openDrainLog(task.id, source)}
-			ondrainclose={() => closeDrainLog(task.id)}
-			ondrainsave={(entry) => saveDrainLog(task.id, entry)}
-			ondrainedit={(log) => editDrainLog(task.id, log)}
-			ondraindelete={(recordId) => deleteDrainLog(task.id, recordId)}
+			onflowopen={(source) => editors.openFlowLog(task.id, source)}
+			onflowedit={() => editors.openFlowLog(task.id, 'button')}
+			onflowclose={() => editors.closeFlowLog(task.id)}
+			onlogflow={(minutes) => editors.saveFlowLog(task.id, minutes)}
+			onflowdelete={() => editors.clearFlowLog(task.id)}
+			ondrainopen={(source) => editors.openDrainLog(task.id, source)}
+			ondrainclose={() => editors.closeDrainLog(task.id)}
+			ondrainsave={(entry) => editors.saveDrainLog(task.id, entry)}
+			ondrainedit={(log) => editors.editDrainLog(task.id, log)}
+			ondraindelete={(recordId) => editors.deleteDrainLog(task.id, recordId)}
 			onupdate={(edit) => session.updateTask(task.id, edit)}
 		/>
 	{/each}

@@ -223,6 +223,41 @@ test('a flow log dropped from its own row comes back on undo', async ({ page }) 
 	await expect(badge).toBeVisible();
 });
 
+/* The Lab holds its own ⚡ drafts and forwards its row's 🗑 to them, and no other e2e
+   drives that path: the same drop as above, on the Lab's row. No reload — the screen's
+   own wiring is what is under test, not the store's re-read. */
+test('a flow log dropped from the Lab’s row comes back on undo', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+	await logFlow(page, 90);
+
+	const badge = page.getByRole('button', {
+		name: 'Correct this time to flow',
+	});
+
+	await expect(badge).toBeVisible();
+
+	await badge.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete this flow log',
+		})
+		.click();
+
+	await expect(badge).toHaveCount(0);
+
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(badge).toBeVisible();
+});
+
 /* The other half of that list's two verbs, added 2026-08-10: the ✎ corrects in place
    rather than linking to the day, which is possible because a correction rewrites the
    quantities the user rated and re-derives nothing from a task. Crossing the screens is
