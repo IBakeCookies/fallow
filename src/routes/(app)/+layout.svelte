@@ -122,6 +122,7 @@
 		() => ({
 			date: session.loadedDate,
 			tasks: session.tasks,
+			isShowingDemo: session.isShowingDemo,
 		}),
 		storageStatus,
 	);
