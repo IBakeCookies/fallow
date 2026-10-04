@@ -582,9 +582,7 @@ export function calculateTimeScarcity(
 	// Σϕ ≥ tasks.length · PHI_FLOOR_HOURS > 0, so the ratio below is always
 	// defined, and a zero budget falls out of it as 100 with no branch of its own.
 	const totalFlowDemand = tasks.reduce((sum, t) => sum + t.flowStateTime, 0);
-	const fundedCount = tasks.filter((task) => task.suggestedHours > 0).length;
-	const switchOverhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
-	const effectiveBudget = Math.max(0, budget - switchOverhead);
+	const effectiveBudget = Math.max(0, budget - calculatePlanSwitchHours(tasks, switchCost));
 	const deficit = totalFlowDemand - effectiveBudget;
 	const scarcity = deficit > 0 ? (deficit / totalFlowDemand) * 100 : 0;
 
@@ -647,7 +645,7 @@ export function calculateBurnoutRisk(
 	// would exceed the declared budget with the difference counted as work.
 	const gap = Math.max(0, Number(switchCost) || 0);
 	const funded = calculateInterleavedOrder(suggestedTasks);
-	const overhead = funded.length > 1 ? (funded.length - 1) * gap : 0;
+	const overhead = calculatePlanSwitchHours(suggestedTasks, gap);
 	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 	const overhang = Math.max(0, budget - overhead - allocated);
 	const blocks: ScheduleBlock[] = [];
@@ -906,8 +904,7 @@ export function calculateScheduleIntegrity(
 
 	if (worked <= 0) return 0; // budget set, but the plan funds nothing
 
-	const fundedCount = tasks.filter((t) => t.suggestedHours > 0).length;
-	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+	const overhead = calculatePlanSwitchHours(tasks, switchCost);
 
 	return Math.round((worked / (worked + overhead)) * 100);
 }

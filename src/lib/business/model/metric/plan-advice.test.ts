@@ -1361,9 +1361,8 @@ describe('suggestPlanAdjustments', () => {
 
 			expect(advice.switchCostPrice.reservedShare).toBeNull();
 
-			// Funded is 0 here, not 1, and that is the `funded > 1` guard's only
-			// behavioural consequence: without it `(0 − 1)·s` is NEGATIVE and the card
-			// prints it. Removing the guard passed every other test.
+			// Funded is 0 here, not 1: without the `m > 1` guard in
+			// `calculatePlanSwitchHours`, `(0 − 1)·s` is NEGATIVE and the card prints it.
 			expect(advice.switchCostPrice.reservedHours).toBe(0);
 
 			advice.switchCostPrice.alternatives.forEach((alternative) =>
