@@ -1369,6 +1369,18 @@ describe('suggestPlanAdjustments', () => {
 				expect(alternative.planValueDeltaPercent).toBeNull(),
 			);
 		});
+
+		// Reachable mid-typing, before the number input clamps on blur: billed as
+		// typed, the cost reserved negative hours and the card printed them.
+		it('reserves no hours under a negative switch cost', () => {
+			const advice = suggestPlanAdjustments(
+				input(GRIND, {
+					switchCost: -0.25,
+				}),
+			);
+
+			expect(advice.switchCostPrice.reservedHours).toBe(0);
+		});
 	});
 
 	// A zero-load plan reads the display sentinel 50, which is
