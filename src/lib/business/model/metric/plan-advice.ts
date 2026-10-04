@@ -20,6 +20,7 @@ import {
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
 import {
+	calculatePlanSwitchHours,
 	calculateQuadrantMargin,
 	calculateTaskPlan,
 	calculateZenithGain,
@@ -565,10 +566,7 @@ function calculateSwitchCostPrice(
 	const { tasks, switchCost, pools, constants, posterior } = input;
 	const budget = baseline.budgetHours;
 	const baseValue = planValueOf(baseline);
-	// Funded, not listed: the allocator pays for the switches it actually makes,
-	// so a task the pools zeroed out costs nothing to "switch" to.
-	const funded = baseline.suggestedTasks.filter((task) => task.suggestedHours > 0).length;
-	const reservedHours = funded > 1 ? (funded - 1) * switchCost : 0;
+	const reservedHours = calculatePlanSwitchHours(baseline.suggestedTasks, switchCost);
 
 	const planValueAt = (candidate: number) =>
 		calculateZenithGain(tasks, budget, candidate, pools, constants, posterior).optimized;

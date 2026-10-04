@@ -1557,7 +1557,7 @@ function naiveBlockPlan(
  *    lattice, and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP`
  *    reading (which fires exactly when budget < n·BLOCK_HOURS). The bill is
  *    instead the largest k the plan genuinely seats — the same "funded, not
- *    listed" rule the switch-cost lever already uses (`metric/plan-advice.ts`).
+ *    listed" rule a solved plan's readings bill by (`calculatePlanSwitchHours`).
  *
  *    Affordability is necessary but NOT sufficient, which is why the scan below
  *    validates k against the plan rather than against the budget alone: a task

@@ -1346,6 +1346,12 @@ describe('calculateTimeScarcity', () => {
 		expect(calculateTimeScarcity(one, 1, 2)).toBe(calculateTimeScarcity(one, 1, 0));
 	});
 
+	// No budget seats no task, and no funded task makes no switch — not
+	// (0 − 1)·s, a credit that reads the day below 100.
+	it('bills no switch on a day that funds nothing', () => {
+		expect(day(3, 0)).toBe(100);
+	});
+
 	// One charge per switch the plan makes: the ladder steps by s/Σϕ = 8.3 points
 	// per 15 minutes on this day, not the 16.7 the listed bill's two switches
 	// took.
