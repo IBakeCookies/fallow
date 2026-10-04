@@ -2369,6 +2369,145 @@ describe('SessionStore constraint carry-over', () => {
 		expect(written.cognitivePool).toBeUndefined();
 		expect(written.physicalPool).toBeUndefined();
 	});
+
+	// Pair or nothing through the moves too, as the auto-save writes it: the pool a
+	// stored day lacks is written at the constant it opened on, never the carried 7.
+	it('completes a stored destination holding one pool with the other’s constant', async () => {
+		const { store } = await setup();
+		const tomorrow = addDays(today, 1);
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === tomorrow
+				? {
+						date,
+						tasks: [],
+						availableHours: 5,
+						switchCost: 0.75,
+						cognitivePool: 2,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		useFakeTimers(); // freeze the auto-save so only the move writes
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: tomorrow,
+			cognitivePool: 2,
+			physicalPool: DEFAULT_CAPACITY_POOLS.physicalHours,
+		});
+	});
+
+	/** A stored day answering every field, none at a default or a carried value.
+	 *  `Required`, so a field `DailySession` gains will not compile here until it is
+	 *  given one — and then every whole-day write below has to carry it. */
+	function buildFullDay(date: string, titles: string[] = []): Required<DailySession> {
+		return {
+			date,
+			tasks: titles.map((title, index) => ({
+				id: index + 1,
+				title,
+				physicalDifficulty: 3,
+				mentalDifficulty: 5,
+				enjoyment: 5,
+				createdAt: date,
+				completed: false,
+			})),
+			availableHours: 5,
+			switchCost: 0.75,
+			cognitivePool: 2,
+			physicalPool: 9,
+			updatedAt: 1,
+		};
+	}
+
+	/** A whole-day write of `day`: its tasks folded and its time restamped, every
+	 *  other field as stored. */
+	function expectRewriteOf(day: DailySession) {
+		return {
+			...day,
+			tasks: expect.any(Array),
+			updatedAt: expect.any(Number),
+		};
+	}
+
+	/** Every session write lands in, and every session read answers from, one map. */
+	function storeDays(...days: DailySession[]) {
+		const stored = new Map(days.map((day) => [day.date, day]));
+
+		updateSessionMock.mockImplementation(async (session) => {
+			stored.set(session.date, session);
+		});
+
+		deleteSessionMock.mockImplementation(async (date) => {
+			stored.delete(date);
+		});
+
+		readSessionByDateMock.mockImplementation(async (date) => stored.get(date) ?? null);
+
+		return stored;
+	}
+
+	// The move, the auto-save that persists its drop, and both halves of its undo —
+	// the source day's off screen by then, so it is rewritten in its own record.
+	it('keeps every stored field of both days through a move and its undo', async () => {
+		const tomorrow = addDays(today, 1);
+		const stored = storeDays(buildFullDay(today, ['ship it']), buildFullDay(tomorrow, ['Dentist']));
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(1));
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
+
+		flushSync();
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+
+		await store.undoCarry!();
+
+		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
+		expect(stored.get(today)).toEqual(expectRewriteOf(buildFullDay(today)));
+		expect(stored.get(tomorrow)?.tasks.map((t) => t.title)).toEqual(['Dentist']);
+		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
+	});
+
+	it('keeps every stored field of tomorrow through a carry and its undo', async () => {
+		const tomorrow = addDays(today, 1);
+		const stored = storeDays(buildFullDay(tomorrow, ['Dentist']));
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		useFakeTimers(); // freeze the auto-save so only the carry writes
+
+		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		expect(stored.get(tomorrow)?.tasks.map((t) => t.title)).toEqual(['ship it', 'Dentist']);
+		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
+
+		await store.undoCarry!();
+
+		expect(stored.get(tomorrow)?.tasks.map((t) => t.title)).toEqual(['Dentist']);
+		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
+	});
 });
 
 describe('SessionStore task tags', () => {

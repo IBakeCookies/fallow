@@ -1309,16 +1309,8 @@ runner-up.
 
 - ~~**A1 — the ⚡/🪫 editor lifecycle is written twice.**~~ Fixed 2026-10-03,
   [measurement-editor.svelte.spec.ts](src/lib/presentation/utils/measurement-editor.svelte.spec.ts).
-- **A2 — four whole-day writes spell one record literal — raised 2026-10-01.**
-  The move, the carry, their undo and `#rewriteDay` each write the same
-  seven-key `DailySession` literal off `#readDestination`'s re-listing, so
-  business/AGENTS.md's "a new field lands in all six" is held in prose:
-  `#persistSession` takes the built payload and cannot see a miss, and no spec
-  passes a stored field through every writer. Direction: the four go through one
-  private read → fold → write seam that writes back every stored field, the
-  shape `#rewriteDay(date, fold)` already has; the autosave builder stays the
-  one listing. Pin first: a stored day holding exactly one pool is written back
-  today with the other defaulted.
+- ~~**A2 — four whole-day writes spell one record literal.**~~ Fixed 2026-10-04,
+  [session-store.svelte.spec.ts](src/lib/business/store/session-store.svelte.spec.ts).
 - **A3 — the identity fits' input window is spelled by each caller — raised
   2026-10-01.** "Days strictly before D, the first informative row per day, and
   name what is deferred" is one decision, but `calibrateEnergyParams` takes no
