@@ -40,6 +40,7 @@ import {
 	type EnergyDraftImpact,
 } from '$lib/business/model/metric/energy-draft-impact';
 import { mapEffort } from '$lib/business/model/zenith';
+import { applyCausalWindow } from '$lib/business/model/causal-window';
 import {
 	keepDayFirstDrainRows,
 	toCognitiveDrainObservations,
@@ -723,23 +724,21 @@ export class EnergyLabStore {
 
 	// ----- Deferred logs -----
 
-	// The three identity fits below read only days strictly before today, like the
-	// main page's copy (`DailyPlanStore`'s `#fitObservations`) — the card names the
-	// α and r the app is planning under, so a log must not move them mid-day. The
-	// advisor above is the state read that keeps today's rows; these two counts
-	// name what is deferred, since a row silently dropped reads as a broken fit.
-	#pendingDrainLogCount = $derived(
-		this.#observations.drainObservations.filter((o) => o.date >= this.#session.today).length,
+	// D is today, not the viewed day (business/AGENTS.md,
+	// "Being a today-only instrument does not exempt its fits").
+	// The counts name what the fits defer.
+	#drainWindow = $derived(
+		applyCausalWindow(this.#observations.drainObservations, this.#session.today),
 	);
 	get pendingDrainLogCount() {
-		return this.#pendingDrainLogCount;
+		return this.#drainWindow.pendingCount;
 	}
 
-	#pendingRestLogCount = $derived(
-		this.#observations.restObservations.filter((o) => o.date >= this.#session.today).length,
+	#restWindow = $derived(
+		applyCausalWindow(this.#observations.restObservations, this.#session.today),
 	);
 	get pendingRestLogCount() {
-		return this.#pendingRestLogCount;
+		return this.#restWindow.pendingCount;
 	}
 
 	// ----- Drain calibration (α fit from end-of-session ratings) -----
@@ -757,10 +756,7 @@ export class EnergyLabStore {
 	#cognitiveDrainFit = $derived(
 		fitDrainRate(
 			toCognitiveDrainObservations(
-				keepDayFirstDrainRows(
-					this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
-					toCognitiveDrainObservations,
-				),
+				keepDayFirstDrainRows(this.#drainWindow.counted, toCognitiveDrainObservations),
 			),
 			DEFAULT_ENERGY_PARAMS.alphaCog,
 			this.#drainLawParams,
@@ -773,10 +769,7 @@ export class EnergyLabStore {
 	#physicalDrainFit = $derived(
 		fitDrainRate(
 			toPhysicalDrainObservations(
-				keepDayFirstDrainRows(
-					this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
-					toPhysicalDrainObservations,
-				),
+				keepDayFirstDrainRows(this.#drainWindow.counted, toPhysicalDrainObservations),
 			),
 			DEFAULT_ENERGY_PARAMS.alphaPhys,
 			this.#drainLawParams,
@@ -812,9 +805,7 @@ export class EnergyLabStore {
 	// fitting r first makes that conditioning well-founded, not circular.
 	#recoveryFit = $derived(
 		fitRecoveryRate(
-			toRestObservations(
-				this.#observations.restObservations.filter((o) => o.date < this.#session.today),
-			),
+			toRestObservations(this.#restWindow.counted),
 			DEFAULT_ENERGY_PARAMS.recoveryRate,
 			{
 				restRecoveryMultiplier: this.#params.restRecoveryMultiplier,

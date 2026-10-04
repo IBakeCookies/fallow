@@ -572,6 +572,36 @@ describe('readModelReport', () => {
 		expect(after.value).toBe(before.value);
 	});
 
+	// A pin: the two "defers … logged today" tests count the ☕/🪫 rows dated today;
+	// the fits must also read none of them.
+	it('leaves the α and r fits reading no rating dated today', async () => {
+		const before = (await readModelReport('2027-03-01', 30)).calibration.energy.params;
+
+		await $createDrainObservation({
+			date: '2027-03-01',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 2,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		await $createRestObservation({
+			date: '2027-03-01',
+			hours: 0.5,
+			mindBefore: 8,
+			mindAfter: 5,
+			bodyBefore: 6,
+			bodyAfter: 4,
+		});
+
+		const after = (await readModelReport('2027-03-01', 30)).calibration.energy.params;
+
+		expect(after).toEqual(before);
+	});
+
 	it('caps the audit lookback', async () => {
 		for (const day of ['2026-08-01', '2026-08-02', '2026-08-03']) {
 			await $updateSession(session(day));
@@ -1294,5 +1324,28 @@ describe('readModelReport α and r skill', () => {
 				scoredCount: 5,
 			});
 		});
+	});
+});
+
+/* A pin: the day asked about has not revealed its stop yet, so it is no λ₀
+   observation — on a user's first day too, when its 🪫 rows are the only ones.
+   Last in the file because its day is older than every other row here: placed
+   earlier, it would reach the fits of every report that follows. */
+describe('readStopObservations on the first day anything is logged', () => {
+	it('reads no day dated the day it is asked about', async () => {
+		await $updateSession(session('2012-01-01'));
+
+		await $createDrainObservation({
+			date: '2012-01-01',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 3,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		expect(await readStopObservations('2012-01-01')).toEqual([]);
 	});
 });

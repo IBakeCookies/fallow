@@ -484,8 +484,8 @@ redirect runs before the layout hands the session store a date, so the wrong
 day is never read, and it holds with JS disabled.
 
 Being a today-only instrument does not exempt its fits from the causal window:
-the three identity fits (α, r, λ₀) read only days **strictly before** today, like
-every other fit in the app. The Lab's r card, its two α rows and every row of
+the three identity fits (α, r, λ₀) read only days **strictly before** today.
+The Lab's r card, its two α rows and every row of
 analytics' "Your model" name what they defer beside the count; the Lab's
 Stopping Calibration card (ROADMAP item 4) still does not. The stop
 advisor is the one read that keeps today's rows — it

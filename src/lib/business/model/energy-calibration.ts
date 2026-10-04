@@ -18,6 +18,7 @@ import {
 	type RestObservation,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { applyCausalWindow } from '$lib/business/model/causal-window';
 import { CAPACITY_POOL_MAX_HOURS } from '$lib/business/utils/capacity-pool-bounds';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 
@@ -267,12 +268,13 @@ export function rankDrainByTask(
 	today: string,
 	params: EnergyParams,
 ): DrainRanking {
-	const windowed = drain.filter((row) => row.date >= rangeStart && row.date < today);
+	const { counted, pendingCount } = applyCausalWindow(drain, today);
+	const windowed = counted.filter((row) => row.date >= rangeStart);
 
 	return {
 		cognitive: rankReservoir(windowed, toCognitiveDrainObservations, params.alphaCog, params),
 		physical: rankReservoir(windowed, toPhysicalDrainObservations, params.alphaPhys, params),
-		deferredCount: drain.filter((row) => row.date >= today).length,
+		deferredCount: pendingCount,
 	};
 }
 

@@ -9,7 +9,7 @@
  *
  * The walk is the app's own causal window, reproduced: logs in date order, each
  * fit reading only logs dated STRICTLY BEFORE the held-out log's date and aged
- * against that date (`session-history.ts`'s `fitFrom`, parameterized by `day`).
+ * against that date (`fitFrom`, parameterized by `day`).
  * Same-date logs are therefore all predicted by the same fit, and n advances in
  * date blocks — scoring a log against a fit that saw its sibling would measure
  * a model the user never ran.

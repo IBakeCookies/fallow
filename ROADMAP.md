@@ -1311,15 +1311,9 @@ runner-up.
   [measurement-editor.svelte.spec.ts](src/lib/presentation/utils/measurement-editor.svelte.spec.ts).
 - ~~**A2 — four whole-day writes spell one record literal.**~~ Fixed 2026-10-04,
   [session-store.svelte.spec.ts](src/lib/business/store/session-store.svelte.spec.ts).
-- **A3 — the identity fits' input window is spelled by each caller — raised
-  2026-10-01.** "Days strictly before D, the first informative row per day, and
-  name what is deferred" is one decision, but `calibrateEnergyParams` takes no
-  day, so the window is spelled at 11 sites in 4 modules
-  (`grep -rnE "(o|row)\.date (<|>=) (this\.#session\.(today|selectedDate)|session\.today|today)\b" src`).
-  The Lab rebuilds the chain instead of calling the facade, and that drift
-  shipped as 76684d4. Direction: the calibration module takes the day and
-  returns the counted observations with their deferred counts; the Lab keeps its
-  slider conditioning and its one Apply.
+- ~~**A3 — the identity fits' input window is spelled by each caller.**~~ Fixed
+  2026-10-04 with the ϕ and λ₀ windows too,
+  [daily-plan-store.svelte.spec.ts](src/lib/business/store/daily-plan-store.svelte.spec.ts).
 - **A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
   instead of through it — raised 2026-10-01.** `calculateTimeScarcity`,
   `calculateBurnoutRisk`, `calculateScheduleIntegrity` and plan-advice's
