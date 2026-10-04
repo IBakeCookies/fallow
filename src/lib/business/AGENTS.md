@@ -165,11 +165,11 @@ the trade runs the same way in each direction:
   boot without that price — an inert store whose correctness depends on the
   caller remembering a second call is worse than the re-read it saves.
 - **In the layout when every staleness reason has a key.** `EnergyLabStore`
-  moved there: its params are the Lab's alone, but its stop observations are
-  not — any write to a past day moves them — so the effect that folds
-  the finished days keys on `SessionStore`'s past-write generation and re-reads.
-  The optimizer behind `plan` stays unrun off `/energy`, pinned by "solves the
-  plan only to fill an order the page asked for". What it buys is the ~120 ms of
+  moved there: its params are the Lab's alone, but any write to a past day moves
+  its stop observations, so their re-read keys on `SessionStore`'s past-write
+  generation. The optimizer behind `plan` stays unrun off `/energy`, pinned by
+  "solves the plan only to fill an order the page asked for" and "solves nothing
+  when the day changes after the page has left". What it buys is the ~120 ms of
   placeholder a page-scoped store spent re-reading on every visit. A staleness
   reason with no such key means a named refresh instead, called by whoever knows
   the reason — `SessionStore` has two, `retryLoad()` for the banner's button and

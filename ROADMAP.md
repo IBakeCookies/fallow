@@ -1366,19 +1366,12 @@ The read-only review of the branch that closed M110 and M112 caught a Lab
 reached from `/?date=` taking its order snapshot from the day still in memory.
 That one is fixed on the branch, pinned by "sorts by the viewed day's plan, not
 the last day's still in memory" in
-[energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts);
-its midnight sibling is left open. The **M** series continues.
+[energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
+The **M** series continues.
 
-- **M115 — an open Lab keeps the old day's order across midnight — raised
-  2026-10-02.** The order is a snapshot per visit (presentation/AGENTS.md,
-  "The Lab's task list reads in schedule order, snapshotted per visit"), and
-  midnight is the one date change `/energy` shows while mounted. The new day's
-  tasks hold no position in the old day's snapshot, so they read in the store's
-  own order, not the plan's, until the next visit. DECIDED 2026-10-04: a day
-  change counts as a visit, so it re-sorts. The snapshot keeps a watched row
-  from moving, and no row survives the day, since a carried task is a copy with
-  a fresh id; `/` already retakes its constraints bar's mount-time snapshot per
-  day (`{#key session.loadedDate}`). The build amends that section to match.
+- ~~**M115 — an open Lab keeps the old day's order across midnight.**~~ Fixed
+  2026-10-04,
+  [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
 
 ## Findings from the 2026-10-03 citation sweep
 
@@ -1414,3 +1407,17 @@ negative cost the readings now refuse. The **M** series continues.
   the same way, `calculateRemainingDay` takes a started task's switch off its
   budget the same way, and the day timeline draws the typed gap. A4 kept the
   allocator's two copies, so the readings bill that plan as switching nothing.
+
+## Findings from the 2026-10-04 M115 review
+
+The read-only review of the M115 fix found it clean, and one older gap in the
+same snapshot. The **M** series continues.
+
+- **M119 — a Lab reached from the example day lists the real day in the
+  store's order — raised 2026-10-04.** `#seedDemoDay` sets `loadedDate` to the
+  viewed day, so leaving `/?demo` by the Lab's nav link snapshots the order of
+  the six demo tasks. The real day then loads under the same date, so the
+  snapshot is not retaken, and its rows read in the store's order for the whole
+  visit. It predates M115: `#orderStale` took the same snapshot. It is the blind
+  spot business/AGENTS.md names for leaving the demo, which "tests
+  `#isShowingDemo` and not the two dates".

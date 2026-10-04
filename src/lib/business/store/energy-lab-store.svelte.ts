@@ -228,16 +228,19 @@ export class EnergyLabStore {
 			this.#autoSave.schedule(snapshot);
 		});
 
-		// Fills the list's order snapshot when the page asks. The ask is read before the
-		// plan, so with none pending the optimizer behind it never runs. Blocks arrive in
-		// schedule order, so first appearance IS the task's position in the day; a day
-		// with no window has none, and the ask waits until one is set.
+		// Fills the list's order snapshot while the page is open and the loaded day is not the
+		// one it was taken for. Both are read before the plan, so with no snapshot due the
+		// optimizer behind it never runs. Blocks arrive in schedule order, so first appearance
+		// IS the task's position in the day; a day with no window has none, and the snapshot
+		// waits until one is set.
 		$effect(() => {
-			if (!this.#orderStale) return;
+			if (!this.#isPageOpen) return;
 
 			// `/energy` takes no date, so arriving from `/?date=` asks while the session
 			// still holds the last day's tasks.
 			if (this.#session.loadedDate !== this.#session.selectedDate) return;
+
+			if (this.#snapshotDate === this.#session.loadedDate) return;
 
 			const { blocks } = this.#plan.evaluation;
 
@@ -253,7 +256,7 @@ export class EnergyLabStore {
 			for (const task of this.#session.tasks) if (!order.includes(task.id)) order.push(task.id);
 
 			this.#displayOrder = order;
-			this.#orderStale = false;
+			this.#snapshotDate = this.#session.loadedDate;
 		});
 
 		$effect(() => {
@@ -398,21 +401,25 @@ export class EnergyLabStore {
 	 *  then the rest. All of them on purpose: it makes "has no position" mean exactly
 	 *  one thing, that the task was added after the snapshot. */
 	#displayOrder = $state<number[]>([]);
-	/** The page's ask, pending until the snapshot is taken. Reactive on purpose: the page
-	 *  asks for a re-sort on a plan that has not changed, so nothing else would re-run the
-	 *  effect that fills the snapshot. */
-	#orderStale = $state(false);
+	/** From the page's `resnapshotOrder()` until the cancel it returns: the only span a
+	 *  snapshot is taken in. */
+	#isPageOpen = $state(false);
+	/** The loaded day `#displayOrder` was taken for. An ask clears it, so the same day is
+	 *  snapshotted again. */
+	#snapshotDate = $state<string | null>(null);
 
-	/** Re-sort the list to the plan as it stands. Called on the page's mount — first
-	 *  paint and every re-navigation, which are the moments an order may change without
-	 *  surprising anyone. The ask waits for the viewed day's plan, so the cold load (where
-	 *  IndexedDB has not answered and no day window is set) snapshots when one appears;
-	 *  the page's unmount calls the returned cancel, so no other route finishes it. */
+	/** Re-sort the list to the plan as it stands. Called on the page's mount — first paint
+	 *  and every re-navigation — and redone while the page is open when the loaded day
+	 *  changes (midnight): the moments an order may change without surprising anyone. Each
+	 *  waits for the viewed day's plan, so the cold load (where IndexedDB has not answered
+	 *  and no day window is set) snapshots when one appears; the page's unmount calls the
+	 *  returned cancel, so no other route finishes or redoes one. */
 	resnapshotOrder(): () => void {
-		this.#orderStale = true;
+		this.#isPageOpen = true;
+		this.#snapshotDate = null;
 
 		return () => {
-			this.#orderStale = false;
+			this.#isPageOpen = false;
 		};
 	}
 
