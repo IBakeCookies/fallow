@@ -836,20 +836,20 @@ decides it — pips or bar, and none at all on an N/A or a total of nothing.
 
 ### The Lab's task list reads in schedule order, snapshotted per visit
 
-Settled 2026-08-05. Sorting it live is the obvious implementation and it is
-wrong: every parameter edit re-optimizes, so the rows re-ranked mid-drag and
-moved the row being dragged out from under the cursor. The page calls
-`lab.resnapshotOrder()` from its `onMount` — first paint and every
-re-navigation — and `#displayOrder` holds until then. Only positions freeze:
-every number in a row stays live, so a stale order never shows a stale reading.
+Settled 2026-08-05. Sorting it live is wrong: every parameter edit re-optimizes,
+so the rows re-ranked mid-drag and moved the row being dragged out from under
+the cursor. A visit is the page's `onMount` calling `lab.resnapshotOrder()` —
+first paint and every re-navigation — or a day change under the open page
+(midnight: `/energy` takes no date), pinned by "re-sorts to the new day's plan
+when the day changes under the open page". Only positions freeze: every number
+in a row stays live, so a stale order never shows a stale reading.
 
-The snapshot is the **whole** day's order — scheduled tasks first, then the ones
-the plan funded nothing, in the store's own order — so "has no position" means
-exactly one thing: added since the snapshot. Those go to the front, because
-`addTask` puts a new task first and the card's form is above the list, so the
-front is where the user looks for the row they just deployed. A day with no
-window has no blocks to sort by, so the snapshot stays unfilled and the list
-reads in the store's order until one is set.
+The snapshot is the **whole** day's order — scheduled tasks first, then the
+unfunded, in the store's own order — so "has no position" means exactly one
+thing: added since the snapshot. Those go to the front, where the user looks for
+the row they just deployed: `addTask` puts a new task first and the card's form
+is above the list. A day with no window has no blocks to sort by, so the
+snapshot stays unfilled and the list keeps the store's order until one is set.
 
 ### The Lab's row reads the three model inputs, it does not slide them
 

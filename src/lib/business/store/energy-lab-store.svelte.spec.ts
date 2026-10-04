@@ -346,6 +346,13 @@ describe('EnergyLabStore', () => {
 		},
 	];
 
+	/** The same three on the next day: a carried task is a copy with a fresh id. */
+	const carriedTasks = (): Task[] =>
+		threeTasks().map((task) => ({
+			...task,
+			id: task.id + 10,
+		}));
+
 	/** First appearance per task across the evaluated blocks — the day's own order. */
 	const plannedOrder = (store: EnergyLabStore) => [
 		...new Set(
@@ -523,6 +530,52 @@ describe('EnergyLabStore', () => {
 		optimizeScheduleMock.mockClear();
 
 		mockSession.availableHours = 2;
+		flushSync();
+
+		expect(optimizeScheduleMock).not.toHaveBeenCalled();
+	});
+
+	/* A Lab left open while its day changes under it (midnight: `/energy` takes no date)
+	   re-sorts its list to the new day's plan, instead of reading the new day in the
+	   store's order until the next visit. */
+
+	// Midnight is the one day change `/energy` shows while mounted, and no row survives
+	// it, so it counts as a visit.
+	it("re-sorts to the new day's plan when the day changes under the open page", async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 2;
+
+		const store = await setupPage();
+		flushSync();
+
+		// The clock moves the viewed day first; the new day's read lands after
+		mockSession.selectedDate = '2026-07-21';
+		flushSync();
+
+		mockSession.tasks = carriedTasks();
+		mockSession.loadedDate = '2026-07-21';
+		flushSync();
+
+		const scheduled = plannedOrder(store);
+		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
+	});
+
+	// `/` changes day on every date link, and the layout's store sees each one: only the
+	// page that is open re-sorts on one.
+	it('solves nothing when the day changes after the page has left', async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 2;
+
+		const store = await setup();
+		const cancel = store.resnapshotOrder();
+		flushSync();
+
+		cancel();
+		optimizeScheduleMock.mockClear();
+
+		mockSession.selectedDate = '2026-07-21';
+		mockSession.tasks = carriedTasks();
+		mockSession.loadedDate = '2026-07-21';
 		flushSync();
 
 		expect(optimizeScheduleMock).not.toHaveBeenCalled();
