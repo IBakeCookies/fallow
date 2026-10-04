@@ -438,14 +438,18 @@ export function calculatePlanSlackHours(
 	return Math.max(0, Math.max(0, budget - overhead) - allocated);
 }
 
-/** The switch overhead the funded set pays: one transition fewer than its tasks. */
+/**
+ * The switch overhead the funded set pays: one transition fewer than its tasks.
+ * A negative cost, reachable mid-typing since the number input clamps on blur,
+ * bills none rather than crediting the budget.
+ */
 export function calculatePlanSwitchHours(
 	tasks: Pick<SuggestedTask, 'suggestedHours'>[],
 	switchCost: number,
 ): number {
 	const funded = tasks.filter((task) => task.suggestedHours > 0);
 
-	return funded.length > 1 ? (funded.length - 1) * switchCost : 0;
+	return funded.length > 1 ? (funded.length - 1) * Math.max(0, Number(switchCost) || 0) : 0;
 }
 
 export function calculateHumanCapacity(
@@ -639,13 +643,8 @@ export function calculateBurnoutRisk(
 	if (!suggestedTasks.length) return 0;
 
 	const budget = Number(availableHours) || 0;
-	// The allocator's own convention (`zenith.ts`: non-positive switch cost means
-	// no switching): a negative cost would otherwise GROW the overhang, and since
-	// the gap blocks below are only pushed when positive, the simulated span
-	// would exceed the declared budget with the difference counted as work.
-	const gap = Math.max(0, Number(switchCost) || 0);
 	const funded = calculateInterleavedOrder(suggestedTasks);
-	const overhead = calculatePlanSwitchHours(suggestedTasks, gap);
+	const overhead = calculatePlanSwitchHours(suggestedTasks, switchCost);
 	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 	const overhang = Math.max(0, budget - overhead - allocated);
 	const blocks: ScheduleBlock[] = [];
@@ -657,10 +656,10 @@ export function calculateBurnoutRisk(
 		const stretch = 1 + overhang / allocated;
 
 		funded.forEach((t, i) => {
-			if (i > 0 && gap > 0)
+			if (i > 0 && switchCost > 0)
 				blocks.push({
 					taskId: null,
-					hours: gap,
+					hours: switchCost,
 				});
 
 			blocks.push({

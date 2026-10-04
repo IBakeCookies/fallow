@@ -1314,13 +1314,9 @@ runner-up.
 - ~~**A3 — the identity fits' input window is spelled by each caller.**~~ Fixed
   2026-10-04 with the ϕ and λ₀ windows too,
   [daily-plan-store.svelte.spec.ts](src/lib/business/store/daily-plan-store.svelte.spec.ts).
-- **A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
-  instead of through it — raised 2026-10-01.** `calculateTimeScarcity`,
-  `calculateBurnoutRisk`, `calculateScheduleIntegrity` and plan-advice's
-  `calculateSwitchCostPrice` each spell `(m−1)·s` over the funded set inline,
-  and only Burnout Risk clamps `s`; 83f992e1 is this drift shipping once.
-  Direction: the four read the seam and the clamp gets one home. The two
-  allocator copies in `zenith.ts` stay.
+- ~~**A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
+  instead of through it.**~~ Fixed 2026-10-04, with M118 found on the way,
+  [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - **A5 — a task's definition crosses the row as seven loose props — raised
   2026-10-01.** `TaskEdit` names the seven fields a form sets, but `task-item`,
   `energy-task-row` and `task-row-shell` each take them separately, defaults for
@@ -1402,3 +1398,17 @@ it still held the stopped reading. The **M** series continues.
 - ~~**M117 — a 🪫 editor left open across midnight keeps the stopped reading
   from every editor the new day opens.**~~ Fixed 2026-10-03,
   [measurement-editor.svelte.spec.ts](src/lib/presentation/utils/measurement-editor.svelte.spec.ts).
+
+## Findings from the 2026-10-04 A4 build
+
+Giving the switch bill's clamp one home found the allocator billing the
+negative cost the readings now refuse. The **M** series continues.
+
+- **M118 — the allocator funds past the budget while a negative switch cost is
+  typed — raised 2026-10-04.** The number input clamps on blur, not per
+  keystroke. `bestPlanWithSwitchCost` skips its subset search at `s ≤ 0` but
+  still takes `(n−1)·s` off the budget, so a negative cost adds hours to it,
+  and the plan can book more than the day declares; `naiveBaselineValue` bills
+  the same way, `calculateRemainingDay` takes a started task's switch off its
+  budget the same way, and the day timeline draws the typed gap. A4 kept the
+  allocator's two copies, so the readings bill that plan as switching nothing.

@@ -120,6 +120,18 @@ describe('calculateDailyMetrics', () => {
 		expect(metrics.planSwitchHours).toBeCloseTo(overhead, 6);
 	});
 
+	// The constraints bar prints this figure, and a cost typed negative, before
+	// the number input clamps on blur, printed negative switching.
+	it('bills no switch hours under a negative switch cost', () => {
+		const metrics = calculateDailyMetrics(
+			input(TASKS, {
+				switchCost: -0.25,
+			}),
+		);
+
+		expect(metrics.planSwitchHours).toBe(0);
+	});
+
 	// The scope split is load-bearing: plan-scoped metrics
 	// describe the day you committed to, so checking a task off must not move
 	// them — its hours stay allocated. Getting this wrong made burnout risk RISE

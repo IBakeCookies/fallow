@@ -6,6 +6,7 @@ import {
 	calculateQuadrantMargin,
 	calculateFrictionIndex,
 	calculateBurnoutRisk,
+	calculatePlanSlackHours,
 	calculateScheduleIntegrity,
 	calculateCompletionRate,
 	calculateYieldIndex,
@@ -867,6 +868,19 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		expect(calculateScheduleIntegrity(eight, 6, 0.25)).toBe(70);
 	});
 
+	// Reachable mid-typing, before the number input clamps on blur: billed as
+	// typed, the overhead went negative and the share read above 100.
+	it('treats a negative switch cost as no switching', () => {
+		const t = (id: number) =>
+			makeSuggested({
+				id,
+				title: `t${id}`,
+				suggestedHours: 2,
+			});
+
+		expect(calculateScheduleIntegrity([t(1), t(2)], 6, -0.25)).toBe(100);
+	});
+
 	it('dropped tasks are consolidation, not fragmentation', () => {
 		// Old rule: a 0-hour task counted as "fragmented" and pushed the metric
 		// down, although dropping is exactly how the allocator UN-fragments a day.
@@ -1172,6 +1186,22 @@ describe('calculateHumanCapacity', () => {
 	});
 });
 
+describe('calculatePlanSlackHours', () => {
+	// Hand-built, so both costs bill the same hours: re-solving at a negative
+	// cost changes the plan.
+	it('treats a negative switch cost as no switching', () => {
+		const plan = [1, 1, 2].map((hours, i) =>
+			makeSuggested({
+				id: i + 1,
+				title: `t${i}`,
+				suggestedHours: hours,
+			}),
+		);
+
+		expect(calculatePlanSlackHours(plan, 6, -0.5)).toBe(calculatePlanSlackHours(plan, 6, 0));
+	});
+});
+
 describe('calculateTimeScarcity', () => {
 	// ϕ = 1h each and both funded, so Σϕ = 2h against one switch.
 	const tasks = [
@@ -1359,6 +1389,14 @@ describe('calculateTimeScarcity', () => {
 		expect(
 			[0, 0.25, 0.5, 0.75].map((switchCost) => calculateTimeScarcity(withUnfunded, 2, switchCost)),
 		).toEqual([33, 42, 50, 58]);
+	});
+
+	// Reachable mid-typing, before the number input clamps on blur: billed as
+	// typed, the switch credited the budget and the day read less scarce.
+	it('treats a negative switch cost as no switching', () => {
+		expect(calculateTimeScarcity(withUnfunded, 2, -0.25)).toBe(
+			calculateTimeScarcity(withUnfunded, 2, 0),
+		);
 	});
 
 	// ϕ is read off the plan, so the user's fitted constants (MATH.md §5, §5.2)
