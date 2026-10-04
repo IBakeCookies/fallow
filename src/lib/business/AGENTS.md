@@ -230,23 +230,24 @@ becomes visible, which asks the writer for `pending` so an unlanded edit is not
 overwritten by the stored day — reachable because a hidden tab that rolls over
 midnight re-loads and re-arms the autosave.
 
-### Six write sites carry the whole day, so a new field lands in all six
+### Three writers carry the whole day, so a new field must reach each
 
-`SessionStore` writes a `DailySession` from the autosave payload, from each
-tomorrow move's destination payload, from the moves' undo (that destination rewritten,
-and `#rewriteDay` for a source day off screen) and from `#rewriteTagInHistory` (the
-rename and the delete) — each a whole record, so every field one of them does not carry is a field it erases.
-`#persistSession` cannot catch that: it takes the payload already built. A field
-that reached only some of the writers once reset a past day's value when a task
-was ticked off there ([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
-The destination writes also read their OWN day's values through `#readDestination`
-and default nothing: a fallback there stamps a value onto a day that never chose
-one. `#rewriteTagInHistory` is the one that carries every field for free, and only
-because it spreads the record it read RAW — a tag rewrite taken off
-`sanitizeSessions`' output would drop whatever a future field adds. The same
-argument in a second store: it rewrites the saved **routines** in that one write,
-read raw past `sanitizeRoutines` for that reason, then re-reads `#routines` so the
-menu and `importRoutine` are not a reload behind.
+`SessionStore` writes a whole `DailySession` in three places: the auto-save payload
+(`#buildSessionContent`), `#rewriteDay` (both tomorrow moves, their undo, the undo's source half)
+and `#rewriteTagInHistory` (the rename and the delete). Each erases every field it does not carry,
+and `#persistSession` cannot catch that: it takes the payload already built. A field that reached
+only some of the writers once reset a past day's value when a task was ticked off there
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)). A new field
+lands in the auto-save builder, in `#readDestination` and in `#rewriteDay`'s literal. That read takes
+a stored day's OWN values: a fallback added there for one stamps a value onto a day that never
+chose it. The specs "keeps every stored field of both days through a move and its
+undo" and "keeps every stored field of tomorrow through a carry and its undo"
+(`session-store.svelte.spec.ts`) pin `#rewriteDay`: their `Required<DailySession>` fixture will not
+compile until a new field is given a value. `#rewriteTagInHistory` carries every field for free, and
+only because it spreads the record it read RAW — a tag rewrite taken off `sanitizeSessions`'
+output would drop whatever a future field adds. The same argument in a second store: it rewrites the
+saved **routines** in that one write, read raw past `sanitizeRoutines` for that reason, then
+re-reads `#routines` so the menu and `importRoutine` are not a reload behind.
 
 ### `SessionStore` has a second day source, and it reaches no storage
 
@@ -570,9 +571,8 @@ both keep the boot day's answer while another date is viewed.
 
 ### A task moves between days only via the two tomorrow moves
 
-Tasks live inside their day's `DailySession` record, so a move is two writes: append a copy to
-tomorrow's session (a read-modify-write through `$readSessionByDate` / `$updateSession` — the
-only store write that does not target the viewed day), then change today's row (persisted by
+Tasks live inside their day's `DailySession` record, so a move is two writes: prepend a copy to
+tomorrow's session (a read-modify-write through `#rewriteDay`), then change today's row (persisted by
 the normal autosave) — in that order and without a transaction, so the failure mode is a
 visible duplicate, never a vanished task.
 

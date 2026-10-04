@@ -573,8 +573,8 @@ export class SessionStore {
 	// forgotten at a new write site.
 	async #persistSession(session: DailySession) {
 		// Every session write, including the two that bypass the auto-save
-		// (`moveTaskToTomorrow`'s destination, `#rewriteTagInHistory`): a fabricated
-		// task landing in a real profile is the whole reason the demo is in memory.
+		// (`#rewriteDay`, `#rewriteTagInHistory`): a fabricated task landing in a
+		// real profile is the whole reason the demo is in memory.
 		if (this.#isShowingDemo) return;
 
 		await sessionRepository.$updateSession(session);
@@ -1064,12 +1064,11 @@ export class SessionStore {
 	 * the advisor's lever is "suppose this task were not on today's list", and a
 	 * row left behind would hold the day's completion under 100% for taking the
 	 * advice. The carry copies instead, because the day it left still has to work
-	 * them (business/AGENTS.md). The destination write is a read-modify-write against
-	 * tomorrow's stored session — the only write in this store that does not
-	 * target the viewed day. Ordered so the failure mode is a visible duplicate,
-	 * never a vanished task: the local drop (persisted by auto-save) happens only
-	 * after the destination write lands. Stashes its way back in `undoCarry`, as
-	 * the carry does — the lever's toast reads it.
+	 * them (business/AGENTS.md). The destination write is a read-modify-write
+	 * against tomorrow's stored session. Ordered so the failure mode is a visible
+	 * duplicate, never a vanished task: the local drop (persisted by auto-save)
+	 * happens only after the destination write lands. Stashes its way back in
+	 * `undoCarry`, as the carry does — the lever's toast reads it.
 	 */
 	async moveTaskToTomorrow(id: number): Promise<boolean> {
 		if (!this.#canEditPlan) return false;
@@ -1096,25 +1095,20 @@ export class SessionStore {
 		const date = this.#selectedDate;
 
 		try {
-			const dest = await this.#readDestination(tomorrow);
-			const moved = this.#toCarriedTask(task, nextTaskId(dest.tasks));
-
-			await this.#persistSession({
-				date: tomorrow,
-				tasks: [moved, ...dest.tasks],
-				availableHours: dest.availableHours,
-				switchCost: dest.switchCost,
-				cognitivePool: dest.declaredPools.cognitiveHours,
-				physicalPool: dest.declaredPools.physicalHours,
-				updatedAt: Date.now(),
-			});
+			const {
+				exists,
+				tasks: [moved],
+			} = await this.#rewriteDay(tomorrow, (tasks) => [
+				this.#toCarriedTask(task, nextTaskId(tasks)),
+				...tasks,
+			]);
 
 			this.#tasks = this.#tasks.filter((t) => t.id !== id);
 
 			const restored = $state.snapshot(task);
 
 			this.#undoCarry = () =>
-				this.#undoCarryOf(date, tomorrow, [moved.id], !dest.exists, (tasks) => [
+				this.#undoCarryOf(date, tomorrow, [moved.id], !exists, (tasks) => [
 					...tasks.slice(0, index),
 					restored,
 					...tasks.slice(index),
@@ -1154,31 +1148,25 @@ export class SessionStore {
 		const date = this.#selectedDate;
 
 		try {
-			const dest = await this.#readDestination(tomorrow);
-			let id = nextTaskId(dest.tasks);
-			const carried = tasks.map((t) => this.#toCarriedTask(t, id++));
+			const { exists, tasks: written } = await this.#rewriteDay(tomorrow, (stored) => {
+				let id = nextTaskId(stored);
 
-			await this.#persistSession({
-				date: tomorrow,
-				tasks: [...carried, ...dest.tasks],
-				availableHours: dest.availableHours,
-				switchCost: dest.switchCost,
-				cognitivePool: dest.declaredPools.cognitiveHours,
-				physicalPool: dest.declaredPools.physicalHours,
-				updatedAt: Date.now(),
+				return [...tasks.map((t) => this.#toCarriedTask(t, id++)), ...stored];
 			});
+
+			const carried = written.slice(0, tasks.length);
 
 			// Handed straight in rather than re-read: between the write and the
 			// re-read the count would offer the same rows again, and a second press
 			// is a second copy.
-			this.#holdDestination([...carried, ...dest.tasks], this.destinationKeyFor(tomorrow));
+			this.#holdDestination(written, this.destinationKeyFor(tomorrow));
 
 			this.#undoCarry = () =>
 				this.#undoCarryOf(
 					date,
 					tomorrow,
 					carried.map((t) => t.id),
-					!dest.exists,
+					!exists,
 				);
 
 			return true;
@@ -1229,42 +1217,32 @@ export class SessionStore {
 		if (restoreSource && isSourceOnScreen) this.#tasks = restoreSource(this.#tasks);
 
 		try {
+			// Leaving a day flushes the auto-save (`#loadSession`): its record holds what the move left.
 			if (restoreSource && !isSourceOnScreen) await this.#rewriteDay(date, restoreSource);
 
-			const dest = await this.#readDestination(tomorrow);
-			const kept = dest.tasks.filter((t) => !copyIds.includes(t.id));
-			const isDeleting = created && kept.length === 0;
+			await this.#rewriteDay(tomorrow, (tasks) => {
+				const kept = tasks.filter((t) => !copyIds.includes(t.id));
+				const isDeleting = created && kept.length === 0;
 
-			// Both in one synchronous step, before the write: an auto-save scheduled
-			// between them flushes the half-undone day back. A deleted record leaves the
-			// day reading as the unseen day it is again — `#loadSession`'s absent branch,
-			// minus `#tasks`, already filtered — and any field left standing satisfies
-			// the dirty test and re-creates the record at a budget nobody declared.
-			if (dayOnScreen() === tomorrow) {
-				this.#tasks = this.#tasks.filter((t) => !copyIds.includes(t.id));
+				// Both in one synchronous step, before the write: an auto-save scheduled
+				// between them flushes the half-undone day back. A deleted record leaves the
+				// day reading as the unseen day it is again — `#loadSession`'s absent branch,
+				// minus `#tasks`, already filtered — and any field left standing satisfies
+				// the dirty test and re-creates the record at a budget nobody declared.
+				if (dayOnScreen() === tomorrow) {
+					this.#tasks = this.#tasks.filter((t) => !copyIds.includes(t.id));
 
-				if (isDeleting) {
-					this.#availableHours = null;
-					this.#switchCost = null;
-					this.#cognitivePool = null;
-					this.#physicalPool = null;
-					this.#loadedHadSession = false;
+					if (isDeleting) {
+						this.#availableHours = null;
+						this.#switchCost = null;
+						this.#cognitivePool = null;
+						this.#physicalPool = null;
+						this.#loadedHadSession = false;
+					}
 				}
-			}
 
-			if (isDeleting) {
-				await this.#deleteSession(tomorrow);
-			} else {
-				await this.#persistSession({
-					date: tomorrow,
-					tasks: kept,
-					availableHours: dest.availableHours,
-					switchCost: dest.switchCost,
-					cognitivePool: dest.declaredPools.cognitiveHours,
-					physicalPool: dest.declaredPools.physicalHours,
-					updatedAt: Date.now(),
-				});
-			}
+				return isDeleting ? null : kept;
+			});
 		} catch (e) {
 			logError('Failed to undo the carry', e, {
 				date,
@@ -1276,26 +1254,34 @@ export class SessionStore {
 		}
 	}
 
-	// The undo's source half for a day no longer on screen: navigating off a day
-	// flushes the auto-save (`#loadSession`), so what the move left is in the
-	// record this rewrites. No record, nothing to put back.
-	async #rewriteDay(date: string, fold: (tasks: Task[]) => Task[]) {
+	// A whole-day write outside the auto-save — business/AGENTS.md, "Three writers carry
+	// the whole day". `fold` runs synchronously between the read and the write; `null`
+	// deletes the record.
+	async #rewriteDay(
+		date: string,
+		fold: (tasks: Task[]) => Task[] | null,
+	): Promise<{ exists: boolean; tasks: Task[] }> {
 		const day = await this.#readDestination(date);
 		const tasks = fold(day.tasks);
 
-		// A day with no record is one the move emptied and the auto-save then dropped
-		// as pristine; the rows the undo puts back are what make it a day again.
-		if (!day.exists && tasks.length === 0) return;
+		if (tasks === null) {
+			await this.#deleteSession(date);
+		} else {
+			await this.#persistSession({
+				date,
+				tasks,
+				availableHours: day.availableHours,
+				switchCost: day.switchCost,
+				cognitivePool: day.declaredPools.cognitiveHours,
+				physicalPool: day.declaredPools.physicalHours,
+				updatedAt: Date.now(),
+			});
+		}
 
-		await this.#persistSession({
-			date,
-			tasks,
-			availableHours: day.availableHours,
-			switchCost: day.switchCost,
-			cognitivePool: day.declaredPools.cognitiveHours,
-			physicalPool: day.declaredPools.physicalHours,
-			updatedAt: Date.now(),
-		});
+		return {
+			exists: day.exists,
+			tasks: tasks ?? [],
+		};
 	}
 
 	updateTask(
@@ -1577,9 +1563,8 @@ export class SessionStore {
 
 	/**
 	 * One tag rewritten everywhere it was ever used — every stored day, the loaded
-	 * one, and every saved routine, which is the only write in this store that
-	 * touches days other than the viewed one. The two verbs below differ in the
-	 * fold and in what they leave `#tagVocabulary`; everything else is this method.
+	 * one, and every saved routine. The two verbs below differ in the fold and in
+	 * what they leave `#tagVocabulary`; everything else is this method.
 	 *
 	 * Raw in, raw out: `sanitizeSession` and `sanitizeRoutines` rebuild a record
 	 * field by field, so writing either one's output back would drop whatever a
