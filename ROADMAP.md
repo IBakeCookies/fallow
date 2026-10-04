@@ -1374,9 +1374,11 @@ its midnight sibling is left open. The **M** series continues.
   "The Lab's task list reads in schedule order, snapshotted per visit"), and
   midnight is the one date change `/energy` shows while mounted. The new day's
   tasks hold no position in the old day's snapshot, so they read in the store's
-  own order, not the plan's, until the next visit. Any fix re-sorts under an
-  open page, which the snapshot exists to refuse, though here every row has
-  changed with the day: decide whether a day change may re-sort before building.
+  own order, not the plan's, until the next visit. DECIDED 2026-10-04: a day
+  change counts as a visit, so it re-sorts. The snapshot keeps a watched row
+  from moving, and no row survives the day, since a carried task is a copy with
+  a fresh id; `/` already retakes its constraints bar's mount-time snapshot per
+  day (`{#key session.loadedDate}`). The build amends that section to match.
 
 ## Findings from the 2026-10-03 citation sweep
 
