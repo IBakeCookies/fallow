@@ -297,6 +297,77 @@ describe('DailyPlanStore', () => {
 		});
 	});
 
+	// The window closes at the VIEWED day, not at today: a day previewed ahead
+	// already reads today's ratings, and a past day reads none logged since.
+	it('fits a future day from the 🪫 logged today', () => {
+		const store = setup();
+		mockSession.selectedDate = '2026-07-21';
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: mockSession.today,
+			}),
+			drainRecord({
+				date: mockSession.today,
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.fittedPools).toEqual({
+			cognitiveHours: expect.any(Number),
+			physicalHours: expect.any(Number),
+		});
+	});
+
+	it('fits a past day without the 🪫 logged since', () => {
+		const store = setup();
+		mockSession.selectedDate = '2026-07-18';
+
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.fittedPools).toEqual({
+			cognitiveHours: null,
+			physicalHours: null,
+		});
+	});
+
+	it('counts the ☕ logged today in a future day’s fit', () => {
+		const store = setup();
+		mockSession.selectedDate = '2026-07-21';
+
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
+		flushSync();
+		const withoutBreak = store.fittedPools;
+
+		mockObservations.restObservations = [
+			restRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.fittedPools).not.toEqual(withoutBreak);
+	});
+
 	// Overnight carry-over: the viewed day's predecessor seeds
 	// the morning reservoirs. The same heavy log feeds the α fit identically from
 	// either date — only yesterday's carries into this morning.

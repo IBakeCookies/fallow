@@ -27,18 +27,17 @@ import {
 	migrateFromLocalStorageToIndexedDB,
 	migrateEnergyParamsFromLocalStorage,
 } from '$lib/data/migration/local-storage-migration';
-import { addDays, BEFORE_ANY_DATE, daysBetween, toISODate } from '$lib/business/utils/date';
+import { addDays, BEFORE_ANY_DATE, toISODate } from '$lib/business/utils/date';
 import {
 	calculateFlowStateTime,
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_USER_CONSTANTS,
-	fitUserConstants,
 	mapEffort,
 	mapEnjoyability,
-	type FitPosterior,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import { applyCausalWindow, fitFrom, type UserFit } from '$lib/business/model/causal-window';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitStoppingValue,
@@ -94,52 +93,6 @@ export async function initializeStorage(): Promise<void> {
 		// Best-effort: the exemption is a nicety, and this runs before every read,
 		// so a refused request must not fail boot into the storage-error surface.
 	}
-}
-
-/**
- * The personalized model fit: ridge least-squares of the logged time-to-flow
- * measurements, anchored to the article defaults, plus the Bayesian posterior
- * the allocator consumes (MATH.md §5.1). Used by the calendar/analytics pages
- * so per-day completion rates match what the main dashboard showed that day —
- * which requires passing the posterior too, not just the point estimate.
- */
-interface UserFit {
-	constants: UserConstants;
-	/** Never absent: every `fitUserConstants` path returns one. */
-	posterior: FitPosterior;
-	fitted: boolean;
-	/** Σw: what the ⚡ history is worth in fresh logs, not its row count (§5.2). */
-	usedCount: number;
-	/** Logs dated on or after `day`, which this fit therefore did not read. Every
-	 *  surface that prints a log count owes the user this one too. */
-	pendingCount: number;
-}
-
-/**
- * The fit **as of** `day`: logs dated strictly before it, aged against it.
- * Causal rather than whole-history, which is what makes the fit this returns
- * the one that day actually planned under — and what stops a ⚡ logged this
- * afternoon from re-scoring a day the user finished in March.
- */
-function fitFrom(observations: FlowObservationRecord[], day: string): UserFit {
-	const counted = observations.filter((o) => o.date < day);
-
-	const fit = fitUserConstants(
-		counted.map((o) => ({
-			E: o.E,
-			beta: o.beta,
-			phi: o.phiHours,
-			ageDays: daysBetween(o.date, day),
-		})),
-	);
-
-	return {
-		constants: fit.constants,
-		posterior: fit.posterior,
-		fitted: fit.fitted,
-		usedCount: fit.effectiveCount,
-		pendingCount: observations.length - counted.length,
-	};
 }
 
 async function readUserFit(today: string): Promise<UserFit> {
@@ -347,6 +300,7 @@ export async function readHistoryPrefills(today: string): Promise<HistoryPrefill
 }
 
 interface FinishedDay {
+	date: string;
 	session: DailySession;
 	workedHours: { taskId: number; hours: number; endedAt?: number }[];
 }
@@ -374,8 +328,8 @@ async function readFinishedDays(
 ): Promise<FinishedDay[]> {
 	const byDate = new Map<string, FinishedDay['workedHours']>();
 
-	for (const log of drainLogs) {
-		if (log.date >= today || log.hours <= 0) continue;
+	for (const log of applyCausalWindow(drainLogs, today).counted) {
+		if (log.hours <= 0) continue;
 
 		const day = byDate.get(log.date) ?? [];
 
@@ -391,7 +345,7 @@ async function readFinishedDays(
 	if (byDate.size === 0) return [];
 
 	const dates = [...byDate.keys()].sort();
-	const sessions = sanitizeSessions(await $readSessionsByDateRange(dates[0], addDays(today, -1)));
+	const sessions = sanitizeSessions(await $readSessionsByDateRange(dates[0], dates.at(-1)!));
 	const sessionByDate = new Map(sessions.map((s) => [s.date, s]));
 	const days: FinishedDay[] = [];
 
@@ -403,6 +357,7 @@ async function readFinishedDays(
 		const rows = byDate.get(date)!;
 
 		days.push({
+			date,
 			session,
 			workedHours: rows.every((row) => Number.isFinite(row.endedAt))
 				? rows
@@ -594,14 +549,11 @@ function calibrationSnapshotFrom(
 	trendStart: string,
 	todayPending: boolean,
 ): CalibrationSnapshot {
-	// Causal on the same rule as the ϕ fit above, and for the same reason the
-	// dashboard's copy of these fits is: the card reports the model the day is
-	// planning under, so including today's ☕/🪫 here would print an α the main
-	// page is not using. Only the FITS are filtered — `ModelReport.drain` still
-	// carries every row, because the carry-over is a state read.
-	const countedRest = rest.filter((o) => o.date < today);
-	const countedDrain = drain.filter((o) => o.date < today);
-	const energy = calibrateEnergyParams(countedRest, countedDrain);
+	// Only the FITS are windowed — `ModelReport.drain` still carries every row,
+	// because the carry-over is a state read.
+	const restWindow = applyCausalWindow(rest, today);
+	const drainWindow = applyCausalWindow(drain, today);
+	const energy = calibrateEnergyParams(restWindow.counted, drainWindow.counted);
 
 	const stopping = fitStoppingValue(
 		stops,
@@ -623,8 +575,8 @@ function calibrationSnapshotFrom(
 		flow,
 		energy: {
 			...energy,
-			pendingRestCount: rest.length - countedRest.length,
-			pendingDrainCount: drain.length - countedDrain.length,
+			pendingRestCount: restWindow.pendingCount,
+			pendingDrainCount: drainWindow.pendingCount,
 			skill: energySkillFrom(rest, drain, recorded, energy.params, today),
 		},
 		stopping: {
@@ -728,7 +680,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	// Widened by a day so the split below can say whether today would qualify as
 	// a finished day, without a second scan of the sessions store.
 	const finished = await readFinishedDays(addDays(today, 1), drain);
-	const days = finished.filter(({ session }) => session.date < today);
+	const { counted: days, pendingCount } = applyCausalWindow(finished, today);
 	const stops = toStopObservations(days);
 	const trendStart = addDays(today, -(auditDayCap - 1));
 
@@ -748,7 +700,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 		recorded,
 		today,
 		trendStart,
-		finished.length > days.length,
+		pendingCount > 0,
 	);
 
 	const fitByDate = new Map(recorded.map((snapshot) => [snapshot.date, snapshot]));

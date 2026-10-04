@@ -66,19 +66,19 @@ a constant, a bound, or a fit's conditioning:
   deliberately **not** weighted — §5.2 says why, and says to revisit them
   together or not at all.
 - **A plan for day D is fitted from logs dated strictly BEFORE D**. The
-  constants are global, so one ⚡ re-times every task on the page — 33% on a
-  task the user never logged, 75% of it on the very first log — and landing
-  that on the day already in flight reshuffles a plan mid-execution. Applies to
-  every **identity** fit (c₁c₂c₃, α, r, λ₀) and to **none** of the **state**
-  reads: `simulateReservoirs`, the carry-over (§8.15) and the §8.11 advisor
-  take today's logs immediately, because a gauge of the present that ignored
-  them would lie. `ageDays` runs against the planned day, not the live one. Any UI
-  that prints a log count must print the **counted** one and name the deferred
-  ones separately, or the ⚡ button reads as broken. History obeys the same rule
-  by **reading** the stored `fitSnapshots` per day rather than refitting:
-  `readDaySummaries` and the trend read a past day under its record and today
-  under the live fit, which also stands in for a missing record; the ☕/🪫 skill
-  readings do the same, except that they skip a day with no record.
+  constants are global, so one ⚡ re-times every task on the page — 33% on a task
+  the user never logged, 75% of it on the very first log — and landing that on
+  the day already in flight reshuffles a plan mid-execution. Applies to every
+  **identity** fit (c₁c₂c₃, α, r, λ₀), each read through `applyCausalWindow`,
+  and to **none** of the **state** reads: `simulateReservoirs`, the carry-over
+  (§8.15) and the §8.11 advisor take today's logs immediately, because a gauge
+  of the present that ignored them would lie. `ageDays` runs against the planned
+  day, not the live one. Any UI that prints a log count must print the
+  **counted** one and name the deferred ones separately, or the ⚡ button reads
+  as broken. History obeys the same rule by **reading** each day's stored
+  `fitSnapshots` instead of refitting: `readDaySummaries` and the trend read a
+  past day under its record and today (or a day with none) under the live fit;
+  the ☕/🪫 skill readings do too, but skip a day with no record.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost `switchCost`
   hours — attention residue, distinct from ramp-up, which ϕ already prices —

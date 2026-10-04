@@ -378,7 +378,7 @@ test('a past day draws the rails it was planned under', async ({ page }) => {
 });
 
 /* The ± beside ϕ is the fit's own spread, so it can only appear once a fit has read a
-   log — and no plan reads the ⚡ dated on its own day (`#fittedFlowObservations`). That
+   log — and no plan reads the ⚡ dated on its own day (`fitFrom`). That
    makes midnight the only place a browser can watch the band arrive, and these two
    tests are the same arc: nothing to be unsure about, then something. */
 test('a fresh profile plans with no ± beside the flow time', async ({ page }) => {

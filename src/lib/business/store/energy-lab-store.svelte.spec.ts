@@ -821,6 +821,42 @@ describe('EnergyLabStore', () => {
 		expect(store.pendingRestLogCount).toBe(1);
 	});
 
+	// The Lab is a today-only instrument, so its window closes at today even while
+	// the session still holds the day the user arrived from (`/?date=`).
+	it('fits up to today while the session still holds an earlier day', async () => {
+		const store = await setup();
+		mockSession.selectedDate = '2026-07-19';
+
+		mockObservations.drainObservations = [drainRecord()];
+		mockObservations.restObservations = [restRecord()];
+		flushSync();
+
+		expect(store.cognitiveDrainFit.fitted).toBe(true);
+		expect(store.recoveryFit.fitted).toBe(true);
+	});
+
+	it('defers from today while the session holds a later day', async () => {
+		const store = await setup();
+		mockSession.selectedDate = '2026-07-21';
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		mockObservations.restObservations = [
+			restRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.pendingDrainLogCount).toBe(1);
+		expect(store.pendingRestLogCount).toBe(1);
+	});
+
 	it('debounces the param autosave into a single write of the last value', async () => {
 		const store = await setup();
 		useFakeTimers();

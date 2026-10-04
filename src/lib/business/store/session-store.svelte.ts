@@ -16,13 +16,7 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
-import {
-	addDays,
-	AFTER_ANY_DATE,
-	BEFORE_ANY_DATE,
-	daysBetween,
-	isISODate,
-} from '$lib/business/utils/date';
+import { addDays, AFTER_ANY_DATE, BEFORE_ANY_DATE, isISODate } from '$lib/business/utils/date';
 import {
 	sanitizeFlowObservations,
 	sanitizeRoutines,
@@ -57,10 +51,10 @@ import {
 	summarizeDeferDestination,
 	type DeferDestination,
 } from '$lib/business/model/metric/defer-destination';
+import { fitFrom } from '$lib/business/model/causal-window';
 import {
 	type CapacityPools,
 	DEFAULT_CAPACITY_POOLS,
-	fitUserConstants,
 	mapEffort,
 	mapEnjoyability,
 } from '$lib/business/model/zenith';
@@ -288,43 +282,14 @@ export class SessionStore {
 		physicalHours: Math.max(0, Number(this.physicalPool) || 0),
 	});
 
-	// The logs a plan for the viewed day is allowed to read: dated STRICTLY BEFORE
-	// it. A ⚡ log is a measurement of the day you are executing, and
-	// letting it into that day's own fit re-times every task on the page mid-run —
-	// against a thin history one log can halve every ϕ, and the allocations move
-	// with it. It lands on the next day's plan instead, where a plan changing is
-	// what making a plan means. Same filter, two more consequences: a future day
-	// previews with today's logs already in it, and a past day reads through the
-	// model that day had rather than through today's, read backwards.
-	#fittedFlowObservations = $derived(
-		this.#flowObservations.filter((o) => o.date < this.#selectedDate),
-	);
+	// business/model/AGENTS.md, "A plan for day D is fitted from logs dated strictly BEFORE D".
+	#constantsFit = $derived(fitFrom(this.#flowObservations, this.#selectedDate));
 
-	/** Logged but not yet counted — dated on or after the planned day. The budget
-	 *  bar says so rather than printing a total the fit did not use. */
-	#pendingFlowLogCount = $derived(
-		this.#flowObservations.length - this.#fittedFlowObservations.length,
-	);
+	/** Logged but not yet counted — dated on or after the planned day.
+	 *  `FlowCalibrationCard` says so rather than printing a total the fit did not use. */
 	get pendingFlowLogCount() {
-		return this.#pendingFlowLogCount;
+		return this.#constantsFit.pendingCount;
 	}
-
-	// Personalized model constants: ridge least-squares fit of ϕ = c₁E + c₂β + c₃
-	// over the logged time-to-flow measurements, anchored to the article's
-	// defaults. Every ⚡ log nudges the model; more logs = less anchor. Ages run
-	// against the planned day, not the live one — the §5.2 weights are part of
-	// "the fit as of day D", so a past day must not have its own logs discounted
-	// by however long ago that day was.
-	#constantsFit = $derived(
-		fitUserConstants(
-			this.#fittedFlowObservations.map((o) => ({
-				E: o.E,
-				beta: o.beta,
-				phi: o.phiHours,
-				ageDays: daysBetween(o.date, this.#selectedDate),
-			})),
-		),
-	);
 
 	constructor(
 		readDateParam: ReadDateParam,

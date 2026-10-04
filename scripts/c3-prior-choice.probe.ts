@@ -17,7 +17,7 @@
  * decision is about. Per arm the truth SETS c₃ and draws c₁, c₂ from the model's
  * own prior (σ₀/√λ = 0.125 with λ = 4). The estimator is the app's own causal
  * window, reproduced: at each distinct log date, fit on the logs dated STRICTLY
- * BEFORE it and aged against it (`session-history.ts`'s `fitFrom`, at a past
+ * BEFORE it and aged against it (`fitFrom`, at a past
  * day), so same-date logs share one fit and n advances in date blocks. Every
  * cell is read TWICE on the same logs — once with `fallback` = the defaults,
  * once with `{...defaults, c3: 0}` — which is the whole flip, through the
@@ -484,8 +484,8 @@ interface FitBlock {
 
 /**
  * The app's own causal window, reproduced: at each distinct log date, fit on the
- * logs dated STRICTLY BEFORE it and aged against it (`session-history.ts`'s
- * `fitFrom`, parameterized by `day`), so same-date logs share one fit and n
+ * logs dated STRICTLY BEFORE it and aged against it (`fitFrom`, parameterized
+ * by `day`), so same-date logs share one fit and n
  * advances in date blocks.
  */
 function walk(logs: SyntheticLog[]): FitBlock[] {

@@ -24,6 +24,7 @@ import {
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import { calculateRemainingDay, type RemainingDay } from '$lib/business/model/metric/remaining-day';
 import { BLOCK_HOURS } from '$lib/business/model/zenith';
+import { applyCausalWindow } from '$lib/business/model/causal-window';
 import {
 	calibrateEnergyParams,
 	offerFittedPools,
@@ -54,18 +55,13 @@ export class DailyPlanStore {
 	// metric derivation below so it only refits when the logs change, not on every
 	// keystroke.
 	//
-	// Causal, on the same rule as the ϕ fit: strictly before the
-	// planned day. Today's 🪫/☕ still reach the day — through the SIMULATION, which
-	// is where a measurement of what happened belongs (the carry-over below, and
-	// the Lab's stop advisor reading today's worked hours). What the rule forbids
-	// is a log moving α and r under a plan the user is part-way through running.
-	#fitObservations = $derived({
-		rest: this.#observations.restObservations.filter((o) => o.date < this.#session.selectedDate),
-		drain: this.#observations.drainObservations.filter((o) => o.date < this.#session.selectedDate),
-	});
-
+	// D is the viewed day (business/model/AGENTS.md,
+	// "A plan for day D is fitted from logs dated strictly BEFORE D").
 	#calibration = $derived(
-		calibrateEnergyParams(this.#fitObservations.rest, this.#fitObservations.drain),
+		calibrateEnergyParams(
+			applyCausalWindow(this.#observations.restObservations, this.#session.selectedDate).counted,
+			applyCausalWindow(this.#observations.drainObservations, this.#session.selectedDate).counted,
+		),
 	);
 
 	#fittedPools = $derived(offerFittedPools(this.#calibration));
