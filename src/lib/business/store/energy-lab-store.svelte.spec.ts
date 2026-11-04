@@ -581,6 +581,59 @@ describe('EnergyLabStore', () => {
 		expect(optimizeScheduleMock).not.toHaveBeenCalled();
 	});
 
+	/* A Lab reached from the example day by its nav link lists the visitor's own day in
+	   that day's plan order. It does not keep the store's order for the whole visit.
+
+	   Tests: src/lib/business/store/energy-lab-store.svelte.spec.ts — "sorts the real day
+	     by its plan when the example day is left for the Lab"
+	   Pins: none
+	   Out of scope:
+	   - SessionStore's demo seeding and leaving (`#seedDemoDay`, the reload effect).
+	     business/AGENTS.md settles why the seed sets `#loadedDate` like a real load.
+	   - The stop advisor's `isShowingDemo` gate (`isStopAdviceReady`), which is already right.
+	   - Any other snapshot trigger. The visit and the day change under the open page
+	     stay the only two (presentation/AGENTS.md, "The Lab's task list reads in
+	     schedule order").
+	   Read before building:
+	   - src/lib/business/store/energy-lab-store.svelte.ts — the order-snapshot `$effect`
+	     (`#isPageOpen`, `#snapshotDate`) keys on `loadedDate` only, and `#seedDemoDay`
+	     sets `loadedDate` to the viewed day. So the real day, landing under the same date,
+	     never retakes it.
+	   - src/routes/(app)/+layout.svelte — `?demo` is scoped to `/(app)`, so on `/energy`
+	     `isShowingDemo` only ever means "the fixture is still in memory while the
+	     visitor leaves".
+	   - src/lib/business/AGENTS.md — "leaving the demo tests `#isShowingDemo` and not
+	     the two dates": SessionStore's reload already takes the rule this snapshot lacks.
+	   - src/lib/presentation/AGENTS.md "The Lab's task list reads in schedule order,
+	     snapshotted per visit": names what triggers a snapshot. Update it if the
+	     wording no longer holds.
+	   Decisions:
+	   - The snapshot waits while the example day is still shown, as it already waits
+	     while `loadedDate` lags `selectedDate`. Read the flag before the plan, so no
+	     solve runs for a fixture `/energy` never displays.
+	   - Rejected: keying `#snapshotDate` on the demo flag as well as the date. It
+	     retakes correctly, but first solves the optimizer for the fixture nobody sees.
+	   - Rejected: clearing `loadedDate` on leaving the demo, in SessionStore. That moves
+	     the auto-save and `canEditPlan` guards every other consumer reads, to fix one reader.
+	   Roadmap: M119 */
+	it('sorts the real day by its plan when the example day is left for the Lab', async () => {
+		// The example day, seeded under today's date
+		mockSession.tasks = threeTasks();
+		mockSession.isShowingDemo = true;
+		mockSession.availableHours = 2;
+
+		const store = await setupPage();
+		flushSync();
+
+		// The visitor's own day lands under the same date
+		mockSession.tasks = carriedTasks();
+		mockSession.isShowingDemo = false;
+		flushSync();
+
+		const scheduled = plannedOrder(store);
+		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
+	});
+
 	/* The Lab's `Effort` column reads this, and it has to be the same number `/` prints
 	   for the same task: E = mapEffort(getEffectiveDifficulty(task)) and nothing else,
 	   so the two screens cannot disagree about a task's effort. */
