@@ -27,13 +27,13 @@ import {
 	suggestBudgetCurve,
 	type BudgetCurve,
 	type EnergyParams,
-	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
 import {
 	calculateInterleavedOrder,
 	calculateSuggestedTasks,
 	getEffectiveDifficulty,
 	toEnergyTask,
+	toScheduleBlocks,
 } from '$lib/business/model/metric/calculation';
 import {
 	calculateEnergyDraftImpact,
@@ -460,25 +460,9 @@ export class EnergyLabStore {
 
 		// Completed tasks stay in: both plans simulate the full intended day,
 		// otherwise the comparison strips work from the classic side only.
-		const funded = calculateInterleavedOrder(suggested);
+		const blocks = toScheduleBlocks(calculateInterleavedOrder(suggested), this.#session.switchCost);
 
-		if (funded.length === 0) return null;
-
-		const blocks: ScheduleBlock[] = [];
-
-		funded.forEach((task, index) => {
-			if (index > 0 && this.#session.switchCost > 0) {
-				blocks.push({
-					taskId: null,
-					hours: this.#session.switchCost,
-				});
-			}
-
-			blocks.push({
-				taskId: task.id,
-				hours: task.suggestedHours,
-			});
-		});
+		if (blocks.length === 0) return null;
 
 		return evaluateSchedule(
 			blocks,

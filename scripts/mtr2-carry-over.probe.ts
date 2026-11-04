@@ -52,6 +52,7 @@ import {
 	calculateBurnoutRisk,
 	calculateInterleavedOrder,
 	calculateSuggestedTasks,
+	toScheduleBlocks,
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
 import {
@@ -127,11 +128,12 @@ describe('The demand arm and the worst-drop mechanism', () => {
 	});
 
 	/**
-	 * The mechanism `calculation.test.ts` narrates but does not measure. The blocks are rebuilt exactly as `calculateBurnoutRisk` builds
-	 * them (interleaved order, switch costs as rest, overhang stretching the
-	 * funded blocks pro-rata); the risk it would report is printed beside the
-	 * reading the metric actually returns, so the reconstruction is checked
-	 * rather than assumed.
+	 * The mechanism `calculation.test.ts` narrates but does not measure. The blocks
+	 * come from the same `toScheduleBlocks` `calculateBurnoutRisk` uses
+	 * (interleaved order, switch costs as rest); the stretch spreading the overhang
+	 * pro-rata and the demands are rebuilt here, so the risk they give is printed
+	 * beside the reading the metric actually returns, and that reconstruction is
+	 * checked rather than assumed.
 	 */
 	it('decomposes the 3.25h → 3.5h drop into work, rest and the binding reservoir', () => {
 		for (const budget of [3.25, 3.5]) {
@@ -143,20 +145,14 @@ describe('The demand arm and the worst-drop mechanism', () => {
 			const rest = gaps * WORST_DROP_SWITCH_COST;
 			const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 			const stretch = 1 + Math.max(0, budget - rest - allocated) / allocated;
-			const blocks: ScheduleBlock[] = [];
 
-			funded.forEach((t, i) => {
-				if (i > 0)
-					blocks.push({
-						taskId: null,
-						hours: WORST_DROP_SWITCH_COST,
-					});
-
-				blocks.push({
-					taskId: t.id,
-					hours: t.suggestedHours * stretch,
-				});
-			});
+			const blocks = toScheduleBlocks(
+				funded.map((t) => ({
+					id: t.id,
+					suggestedHours: t.suggestedHours * stretch,
+				})),
+				WORST_DROP_SWITCH_COST,
+			);
 
 			const { endCog, endPhys } = simulateReservoirs(
 				blocks,

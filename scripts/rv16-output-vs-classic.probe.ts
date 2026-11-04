@@ -27,7 +27,6 @@ import {
 } from '$lib/business/model/zenith';
 import {
 	DEFAULT_ENERGY_PARAMS,
-	type ScheduleBlock,
 	evaluateSchedule,
 	optimizeSchedule,
 } from '$lib/business/model/zenith-energy';
@@ -35,6 +34,7 @@ import {
 	calculateInterleavedOrder,
 	calculateTaskPlan,
 	toEnergyTask,
+	toScheduleBlocks,
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
@@ -100,29 +100,6 @@ const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const percent = (value: number, base: number) => ((value - base) / base) * 100;
 const fmt = (x: number) => x.toFixed(2);
 
-/** Exactly `EnergyLabStore.#classicEvaluation`'s block construction. */
-function classicBlocks(
-	funded: { id: number; suggestedHours: number }[],
-	switchCost: number,
-): ScheduleBlock[] {
-	const blocks: ScheduleBlock[] = [];
-
-	funded.forEach((task, index) => {
-		if (index > 0 && switchCost > 0)
-			blocks.push({
-				taskId: null,
-				hours: switchCost,
-			});
-
-		blocks.push({
-			taskId: task.id,
-			hours: task.suggestedHours,
-		});
-	});
-
-	return blocks;
-}
-
 describe('output vs the classic plan (the /energy summary tile)', () => {
 	it('raw output vs the objective the plan maximizes', () => {
 		const days = drawDays(DAYS, SEED);
@@ -152,7 +129,7 @@ describe('output vs the classic plan (the /energy summary tile)', () => {
 			);
 
 			const funded = calculateInterleavedOrder(plan.suggestedTasks);
-			const blocks = classicBlocks(funded, DEFAULT_SWITCH_COST);
+			const blocks = toScheduleBlocks(funded, DEFAULT_SWITCH_COST);
 			const demanded = blocks.reduce((sum, b) => sum + b.hours, 0);
 
 			if (demanded > day.budget + 1e-9) {

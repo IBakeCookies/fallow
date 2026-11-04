@@ -1432,15 +1432,9 @@ The deepenings, strongest first.
 
 - ~~**A10 — the example day reads as today's stored day.**~~ Fixed 2026-11-04,
   [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
-- **A11 — the classic plan's energy schedule is built four times — raised
-  2026-11-04.** `EnergyLabStore`'s `#classicEvaluation`, `calculateBurnoutRisk`'s
-  gap loop, and `classicBlocks` in `rv16-output-vs-classic.probe.ts` ("Exactly
-  `EnergyLabStore.#classicEvaluation`'s block construction") and in
-  `mode-cross-scoring.probe.ts`, the 300-day probe behind "The energy model is a
-  peer mode". `calculateInterleavedOrder` is one definition of the order, not of
-  the blocks built from it. Direction: one model export turns a classic plan
-  into schedule blocks; Burnout Risk keeps its stretch and trailing block by
-  scaling its own inputs.
+- ~~**A11 — the classic plan's energy schedule is built four times.**~~ Fixed
+  2026-11-04 with three more probe copies,
+  [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - **A12 — the deferred-🪫 count lives on the Lab — raised 2026-11-04.**
   `pendingDrainLogCount` and `pendingRestLogCount` read no Lab parameter, and
   the first is the only thing `/analytics` reads off the Lab. Direction: both
