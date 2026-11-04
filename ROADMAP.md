@@ -1465,11 +1465,9 @@ The defects.
   2026-11-04, [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
 - ~~**S10 — the constraints bar keeps the fixture's closed state on the visitor's
   own day.**~~ Fixed 2026-11-04, [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
-- **S11 — an edit still inside the auto-save debounce is lost when the fixture
-  seeds — raised 2026-11-04, traced, racy.** `#seedDemoDay` sets
-  `#isShowingDemo` without flushing the pending write, and `#persistSession`
-  refuses under it, so an edit made within `AUTOSAVE_DEBOUNCE_MS` of opening the
-  example day is gone when the visitor leaves it. `#loadSession` flushes first.
+- ~~**S11 — an edit still inside the auto-save debounce is lost when the fixture
+  seeds.**~~ Fixed 2026-11-04,
+  [session-store.svelte.spec.ts](src/lib/business/store/session-store.svelte.spec.ts).
 - **M120 — `/analytics` prints the deferred-🪫 count from two sources — raised
   2026-11-04, drift traced.** The drain card reads the Lab's live
   `pendingDrainLogCount`, the "Your model" note `readModelReport`'s
