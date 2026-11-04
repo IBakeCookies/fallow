@@ -20,9 +20,10 @@ const flatTrend: CalibrationSnapshot['trend'] = {
 	stoppingValue: [0.44],
 };
 
-/** Nothing deferred — the rows' own business is the snapshot; the deferred ☕/🪫
- *  counts are the observation store's live ones, handed in beside it. */
+/** Nothing deferred — the rows' own business is the snapshot; the deferred
+ *  ⚡/☕/🪫 counts are the stores' live ones, handed in beside it. */
 const NONE_PENDING = {
+	flow: 0,
 	rest: 0,
 	drain: 0,
 };
@@ -33,7 +34,6 @@ const unfitted: CalibrationSnapshot = {
 	flow: {
 		fitted: false,
 		usedCount: 0,
-		pendingCount: 0,
 		phiHours: 0.5,
 		defaultPhiHours: 0.75,
 		skill: null,
@@ -106,7 +106,6 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 6,
-					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: null,
@@ -191,7 +190,6 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 14,
-					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: {
@@ -217,7 +215,6 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 14,
-					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: {
@@ -244,7 +241,6 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 3.5,
-					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: null,
@@ -371,7 +367,6 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 3.5,
-					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: null,
@@ -395,14 +390,16 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 3.5,
-					pendingCount: 2,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 					skill: null,
 				},
 			},
 			'en-US',
-			NONE_PENDING,
+			{
+				...NONE_PENDING,
+				flow: 2,
+			},
 		);
 
 		expect(rows[0].evidence).toBe(
@@ -418,8 +415,8 @@ describe('calibrationRows', () => {
 	// unmoved, which reads as a log that was dropped.
 	it('names a ☕ logged today on the recovery row', () => {
 		const rows = calibrationRows(unfitted, 'en-US', {
+			...NONE_PENDING,
 			rest: 1,
-			drain: 0,
 		});
 
 		expect(rows[1].evidence).toBe('0 ratings · 1 ☕ logged today, counted from tomorrow');
@@ -430,7 +427,7 @@ describe('calibrationRows', () => {
 	// (MATH.md §8.7), while the recovery row above still counts ☕ pairs.
 	it('names the 🪫 logged today on both drain rows', () => {
 		const rows = calibrationRows(unfitted, 'en-US', {
-			rest: 0,
+			...NONE_PENDING,
 			drain: 2,
 		});
 

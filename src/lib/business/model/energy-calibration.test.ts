@@ -673,13 +673,12 @@ describe('rankDrainByTask', () => {
 		expect(Math.abs(alphaOf(1) - anchor)).toBeLessThan(Math.abs(alphaOf(5) - anchor));
 	});
 
-	it('counts the rows the causal window held back instead of fitting them', () => {
+	it('ranks none of the rows the causal window held back', () => {
 		// Today's and two dated past it, on their own days and rated highest of all
 		// three titles: a window that stopped holding them would rank this top.
 		const held = firstOn([TODAY, '2026-07-25', '2026-07-26'], 'triage', 10);
 		const ranking = rank([...inbox(), ...deepWork(), ...held]);
 
-		expect(ranking.deferredCount).toBe(3);
 		expect(ranking.cognitive?.most.taskTitle).toBe('deep work');
 	});
 });

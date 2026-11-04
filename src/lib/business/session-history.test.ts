@@ -394,10 +394,8 @@ describe('readModelReport', () => {
 	/* The report is the model the day is PLANNING under, so it reads the same
 	   window the dashboard does — logs strictly before the report date. Without
 	   this the analytics card would print a ϕ moved by a log the main page's plan
-	   had not yet counted, which is the same dishonesty on a second screen. The
-	   deferred rows are reported rather than dropped, so the card can say
-	   "logged today" instead of appearing to have lost them. */
-	it('excludes the report date’s own ⚡ logs, and reports them as pending', async () => {
+	   had not yet counted, which is the same dishonesty on a second screen. */
+	it('excludes the report date’s own ⚡ logs', async () => {
 		// Measured against this store's own baseline rather than against zero: the
 		// suite shares a database, so what matters is that the NEW log changes
 		// nothing on its own day and everything on the next.
@@ -418,11 +416,9 @@ describe('readModelReport', () => {
 
 		expect(sameDay.usedCount).toBe(before.usedCount);
 		expect(sameDay.phiHours).toBe(before.phiHours);
-		expect(sameDay.pendingCount).toBe(1);
 
 		const nextDay = (await readModelReport('2026-05-02', 30)).calibration.flow;
 
-		expect(nextDay.pendingCount).toBe(0);
 		expect(nextDay.usedCount).toBeGreaterThan(before.usedCount + 0.9);
 		// A 4h log on a mid-scale task pulls the reference ϕ up, so the deferral is
 		// suppressing a real move rather than a no-op.
