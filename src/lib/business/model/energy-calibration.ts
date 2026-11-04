@@ -249,8 +249,6 @@ export interface DrainRankingPair {
 export interface DrainRanking {
 	cognitive: DrainRankingPair | null;
 	physical: DrainRankingPair | null;
-	/** 🪫 rows the causal window held back: today's, and any dated past it. */
-	deferredCount: number;
 }
 
 /**
@@ -268,13 +266,12 @@ export function rankDrainByTask(
 	today: string,
 	params: EnergyParams,
 ): DrainRanking {
-	const { counted, pendingCount } = applyCausalWindow(drain, today);
+	const { counted } = applyCausalWindow(drain, today);
 	const windowed = counted.filter((row) => row.date >= rangeStart);
 
 	return {
 		cognitive: rankReservoir(windowed, toCognitiveDrainObservations, params.alphaCog, params),
 		physical: rankReservoir(windowed, toPhysicalDrainObservations, params.alphaPhys, params),
-		deferredCount: pendingCount,
 	};
 }
 

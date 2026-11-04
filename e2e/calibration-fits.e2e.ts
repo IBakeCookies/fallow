@@ -803,36 +803,7 @@ test('a break dropped on analytics leaves the recovery row', async ({ page }) =>
 
 /* Goal — a ⚡ I drop from the log list on analytics leaves the "Your model" card's flow
    row, as it leaves the Flow Calibration card; and a 🪫 dropped today leaves the drain
-   ranking's line, as it leaves the drain rows above.
-
-   Tests: e2e/calibration-fits.e2e.ts ("a time-to-flow log dropped on analytics leaves
-   the flow row"); e2e/drain-rating.e2e.ts ("a rating dropped today leaves the ranking’s
-   line"); src/lib/presentation/utils/calibration-descriptor.test.ts ("names the logs no
-   fit has counted yet, rather than folding them in" — the ⚡ count now arrives in the
-   third argument, `NONE_PENDING` gains `flow`, and no `flow` literal carries
-   `pendingCount`).
-   Pins: none new. Edited as pins of the shape this replaces: session-history.test.ts'
-   "excludes the report date’s own ⚡ logs" loses its two `pendingCount` asserts;
-   energy-calibration.test.ts' held-back test ("ranks none of the rows the causal
-   window held back") loses `deferredCount`.
-   Out of scope:
-   - the rest of the model card and the ranking staying the report read on arrival
-   - `UserFit.pendingCount` — the session store reads it, and it stays
-   - A13
-   Read before building:
-   - src/lib/presentation/utils/calibration-descriptor.ts — the flow row reads
-     `flow.pendingCount`; `pending` becomes `{ flow: number; rest: number; drain: number }`
-   - src/lib/business/session-history.ts, `CalibrationSnapshot['flow']` — drop
-     `pendingCount` from the type, its doc and the `flow` literal
-   - src/lib/business/model/energy-calibration.ts, `DrainRanking` / `rankDrainByTask` —
-     drop `deferredCount` and the `pendingCount` destructure
-   - src/routes/(app)/analytics/+page.svelte — `modelRows` passes
-     `flow: session.pendingFlowLogCount`; the ranking card's line reads
-     `pendingDrainLogs` instead of `drainRanking.deferredCount`
-   Decisions: both lines read the count the card beside the log list already reads
-   (M125, M126). `session.pendingFlowLogCount` windows at the planned day, which on
-   /analytics (no date parameter) is today, so it is the report's window as of arrival.
-   Roadmap: M125, M126 */
+   ranking's line, as it leaves the drain rows above. */
 
 test('a time-to-flow log dropped on analytics leaves the flow row', async ({ page }) => {
 	await page.goto('/');

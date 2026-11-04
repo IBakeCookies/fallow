@@ -48,7 +48,7 @@ export interface ModelRow {
 export function calibrationRows(
 	calibration: CalibrationSnapshot | null,
 	locale: string,
-	pending: { rest: number; drain: number },
+	pending: { flow: number; rest: number; drain: number },
 ): ModelRow[] {
 	if (calibration === null) return [];
 
@@ -154,10 +154,10 @@ export function calibrationRows(
 			// The skill sentence's predicted-log count DOES include them — a fit
 			// predicted them even though none has read them (MATH.md §5).
 			evidence: evidenceWithSkill(
-				flow.pendingCount > 0
+				pending.flow > 0
 					? m.ana_model_note_flow_pending({
 							count: formatDecimals(flow.usedCount, 1, locale),
-							pending: flow.pendingCount,
+							pending: pending.flow,
 						})
 					: m.ana_model_note_flow({
 							count: formatDecimals(flow.usedCount, 1, locale),
