@@ -954,51 +954,7 @@ describe('calculateYieldIndex', () => {
 
 	/* Yield Index decides its own absence: a day that completed nothing has no reading
 	   (`null`), as `calculateRewardDensity` and `calculateDailyQuadrant` already answer.
-	   It no longer reads 0, which every reader then had to undo. Nothing shipped moves.
-
-	   Tests:
-	   - src/lib/business/model/metric/calculation.test.ts — "reads no yield with no completions"
-	   - src/lib/business/model/metric/history.test.ts — "reads no yield on a day that
-	     completed nothing"
-	   Pins (pass today; their fixtures now carry the producer's `null`, derived from
-	   `completedTasks` in each helper):
-	   - metric-descriptor.test.ts — "withholds the yield index until something has been completed"
-	   - completion-chart-points.test.ts — "carries each day slot its yield reading, and
-	     none on a day that completed nothing"
-	   - history.test.ts — "averages yield over the days that completed something"
-	   Out of scope:
-	   - The `!maxPossiblePriority` return stays 0. That is a reading on a day that did
-	     complete something, and making it null would change what the card prints.
-	   - `calculateCompletionRate`'s 0, which is a true reading (presentation/AGENTS.md,
-	     "Completion rate and Yield Index are one card").
-	   - analytics-store.svelte.spec.ts's zero-completion rows with `yieldIndex: 80`. They
-	     assert totals and never read yield.
-	   Read before building:
-	   - src/lib/business/model/metric/calculation.ts — `calculateYieldIndex`; and
-	     `calculateRewardDensity`, the `number | null` precedent.
-	   - src/lib/business/model/metric/daily-metrics.ts (`DailyMetrics.yieldIndex`) and
-	     history.ts (`DaySummary.yieldIndex`, `weeklyRollups` and its doc comment, which
-	     says "`yieldIndex` is 0 on a day that finished nothing") — the two producers and
-	     the first reader.
-	   - src/lib/presentation/utils/metric-descriptor.ts — the yield row gates on
-	     `completedTasks > 0`. The `rewardDensity` row is the pattern to copy:
-	     `gated(x !== null, …, getBandBiggerBetter(x ?? 0))`.
-	   - src/lib/presentation/utils/completion-chart-points.ts — `line` gates on
-	     `summary.completedTasks > 0`.
-	   - presentation/AGENTS.md "Completion rate and Yield Index are one card" — it stays
-	     true as written.
-	   Decisions:
-	   - `null` exactly when nothing was completed. Both producers count over one
-	     `SuggestedTask` per task (`calculateTaskPlan` maps, never filters), so that is
-	     the same predicate the three readers re-apply, and dropping theirs moves nothing.
-	   - The three readers gate on `yieldIndex !== null` and drop `completedTasks > 0`.
-	     The type widens to `number | null` on `calculateYieldIndex`,
-	     `DailyMetrics.yieldIndex` and `DaySummary.yieldIndex`. The export count is
-	     unchanged.
-	   - Rejected: a refactor that keeps 0. That is the mirror A7 names. Rejected:
-	     `/refactor`, because the function's return value moves and three pins'
-	     fixtures encoded the old one.
-	   Roadmap: A7 */
+	   It no longer reads 0, which every reader then had to undo. Nothing shipped moves. */
 	it('reads no yield with no completions', () => {
 		expect(calculateYieldIndex([t(1, 9, false), t(2, 6, false)])).toBeNull();
 	});

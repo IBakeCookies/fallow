@@ -1337,12 +1337,8 @@ runner-up.
   screens, holding M108's split (the Lab's λ₀ reads `spread`, Analytics keeps
   ±) as one decision; the bounds get one definition that the model and the route
   both read, as `capacity-pool-bounds.ts` does for the pools.
-- **A7 — Yield Index reports "no reading" as 0 — raised 2026-10-01.**
-  `calculateYieldIndex` returns 0 on a day that completed nothing, so
-  `metric-descriptor.ts`, `completion-chart-points.ts` and `weeklyRollups` each
-  re-apply `completedTasks > 0`, where `calculateRewardDensity` and
-  `calculateDailyQuadrant` answer `null`. Direction: absence is decided once, in
-  the model.
+- ~~**A7 — Yield Index reports "no reading" as 0.**~~ Fixed 2026-11-04,
+  [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - **A8 — tomorrow's record is held by two stores under one key — raised
   2026-10-01.** `SessionStore` holds it for the carry count and `DailyPlanStore`
   for the defer line. The second rebuilds the key from two getters and must take

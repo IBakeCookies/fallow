@@ -312,10 +312,10 @@ export function calculateCompletionRate(suggestedTasks: SuggestedTask[]): number
 	return Math.round((actualCompletedPriority / totalPossiblePriority) * 100);
 }
 
-export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
+export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number | null {
 	const completedTasks = suggestedTasks.filter((t) => t.completed).length;
 
-	if (!completedTasks) return 0;
+	if (!completedTasks) return null;
 
 	// Sort by priority locally: "best possible" is the top-N tasks by priority,
 	// regardless of the order the caller passes tasks in.

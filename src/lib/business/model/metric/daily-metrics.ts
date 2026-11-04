@@ -79,7 +79,7 @@ export interface DailyMetrics {
 	// ----- Metrics -----
 	zenithGain: ZenithGain;
 	completionRate: number;
-	yieldIndex: number;
+	yieldIndex: number | null;
 	flowCoverage: { reached: number; total: number };
 	humanCapacity: ReturnType<typeof calculateHumanCapacity>;
 	bottleneckTask: ReturnType<typeof calculateBottleneckTask>;
