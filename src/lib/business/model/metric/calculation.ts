@@ -18,6 +18,7 @@ import {
 	type ReservoirDemand,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { clampSwitchCost } from '$lib/business/utils/switch-cost';
 import type { Task } from '$lib/data/type';
 
 // Spillover: how much the secondary difficulty dimension adds on top of the
@@ -438,18 +439,14 @@ export function calculatePlanSlackHours(
 	return Math.max(0, Math.max(0, budget - overhead) - allocated);
 }
 
-/**
- * The switch overhead the funded set pays: one transition fewer than its tasks.
- * A negative cost, reachable mid-typing since the number input clamps on blur,
- * bills none rather than crediting the budget.
- */
+/** The switch overhead the funded set pays: one transition fewer than its tasks. */
 export function calculatePlanSwitchHours(
 	tasks: Pick<SuggestedTask, 'suggestedHours'>[],
 	switchCost: number,
 ): number {
 	const funded = tasks.filter((task) => task.suggestedHours > 0);
 
-	return funded.length > 1 ? (funded.length - 1) * Math.max(0, Number(switchCost) || 0) : 0;
+	return funded.length > 1 ? (funded.length - 1) * clampSwitchCost(switchCost) : 0;
 }
 
 export function calculateHumanCapacity(

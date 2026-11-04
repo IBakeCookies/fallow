@@ -71,7 +71,7 @@ describe('buildDayTimeline', () => {
 		expect(timeline.blocks[1].startOffset).toBe(1.25);
 	});
 
-	// ROADMAP M118, brief in zenith.test.ts "Switch Overhead".
+	// ROADMAP M118.
 	it('draws no switch gap under a negative switch cost', () => {
 		const timelineAt = (switchCost: number) =>
 			buildDayTimeline(

@@ -54,6 +54,7 @@
 
 import type { TaskImportance } from '$lib/data/type';
 import { solve3x3, invert3x3 } from '$lib/business/model/linalg';
+import { clampSwitchCost } from '$lib/business/utils/switch-cost';
 
 /** MATH.md §0: the objective is Σᵢ vᵢ·P̄ᵢ(tᵢ). `normal` is exactly 1, so an
  *  undeclared level leaves every plan bit-identical. */
@@ -997,10 +998,11 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
 	totalBudget: number,
-	switchCost: number,
+	typedSwitchCost: number,
 	poolCog: number,
 	poolPhys: number,
 ): number[] {
+	const switchCost = clampSwitchCost(typedSwitchCost);
 	const n = tasks.length;
 	// The day's funded set is `already started ∪ this plan's subset`, so a plan
 	// that abandons a started task does not get its switch back.
@@ -1578,12 +1580,13 @@ function naiveBlockPlan(
 function naiveBaselineValue(
 	tasks: PooledTaskInput[],
 	totalBudget: number,
-	switchCost: number,
+	typedSwitchCost: number,
 	poolCog: number,
 	poolPhys: number,
 	constants: UserConstants,
 	posterior?: FitPosterior,
 ): number {
+	const switchCost = clampSwitchCost(typedSwitchCost);
 	const n = tasks.length;
 
 	const blocksFor = (funded: number): number =>

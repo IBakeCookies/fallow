@@ -27,6 +27,7 @@ import {
 	getTaskNature,
 	toPooledInputs,
 } from '$lib/business/model/metric/calculation';
+import { clampSwitchCost } from '$lib/business/utils/switch-cost';
 import type { Task } from '$lib/data/type';
 
 export interface RemainingDayInput {
@@ -132,7 +133,7 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 
 	const allocations = calculatePooledAllocations(
 		toPooledInputs(candidates),
-		Math.max(0, budget - workedTotal - startedOutside * input.switchCost),
+		Math.max(0, budget - workedTotal - startedOutside * clampSwitchCost(input.switchCost)),
 		poolsLeft,
 		input.constants,
 		input.switchCost,
