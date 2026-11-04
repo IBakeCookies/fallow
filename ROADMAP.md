@@ -1326,7 +1326,9 @@ runner-up.
   `tags` (4c81247) each touched the whole chain. Direction: the definition
   travels whole and the default is decided once. The ⚡/🪫 editors' 14 props
   still take the same hops from `task-list` down: A1 gave their lifecycle one
-  module, not their route to the shell.
+  module, not their route to the shell. Re-measured 2026-11-04, off each
+  `Props`: `task-list` 31, `task-item` 41, `energy-task-row` 30 (26 forwarded
+  unread), `task-row-shell` 34; the editors' 14 are the larger half.
 - **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
   Lab route's three reading builders, `param-row`'s null state and
   `calibration-descriptor.ts` each decide part of a fit's reading (its states,
@@ -1336,7 +1338,10 @@ runner-up.
   Direction: one module in presentation decides a fit's reading for both
   screens, holding M108's split (the Lab's λ₀ reads `spread`, Analytics keeps
   ±) as one decision; the bounds get one definition that the model and the route
-  both read, as `capacity-pool-bounds.ts` does for the pools.
+  both read, as `capacity-pool-bounds.ts` does for the pools. Widened by
+  5a35145: the 🪫 pending sentence's one/many choice is now made in `/energy`,
+  `/analytics`' drain ranking and `drain-calibration-card`, under two message
+  families for one count.
 - ~~**A7 — Yield Index reports "no reading" as 0.**~~ Fixed 2026-11-04,
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - **A8 — tomorrow's record is held by two stores under one key — raised
@@ -1407,3 +1412,101 @@ same snapshot. The **M** series continues.
 - ~~**M119 — a Lab reached from the example day lists the real day in the
   store's order.**~~ Fixed 2026-11-04,
   [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
+
+## Findings from the 2026-11-04 architecture review
+
+Three read-only explorers over the hot spots of the last 150 commits —
+`SessionStore`'s day on screen and who keys on it, `EnergyLabStore`'s interface,
+the routes and the task row — with each kept claim re-checked against the code.
+Nothing was run but grep and git: an entry marked _traced_ was found by reading
+and has not been reproduced. A5 and A6 stand, wider (above); A7, A8 and A9 hold
+as written. Four candidates were dropped against what already answers them: the
+example day as a second storage adapter (each write needs its own refusal, so
+one adapter with per-caller semantics), a load-generation token for the day (a
+same-day re-read is no new identity, 3e67bbb), the Lab's fits through
+`calibrateEnergyParams` (a different estimator on purpose, 16c958e), and a
+`DayActions` wrapper (it would read stores). The **A**, **M** and **S** series
+continue.
+
+The deepenings, strongest first.
+
+- **A10 — the example day reads as today's stored day — raised 2026-11-04.**
+  `#seedDemoDay` stamps the fixture with the viewed date, so `loadedDate` cannot
+  tell it from the real day and each reader adds `isShowingDemo` itself:
+  `logDrain` through the layout's thunk (S8), `isStopAdviceReady` (M116), the
+  Lab's order snapshot (M119). `/`'s constraints-bar key and `removeTask`'s undo
+  still key on the date alone (S9, S10), and the Lab spec's `MockSession`
+  re-spells the flag (A8's failure mode). Direction: the public `loadedDate`
+  answers which stored day is on screen, null while the fixture shows, and the
+  flag goes private. The private date `#canEditPlan` and the auto-save read
+  stays as it is, which is what M119's fix refused to move.
+- **A11 — the classic plan's energy schedule is built four times — raised
+  2026-11-04.** `EnergyLabStore`'s `#classicEvaluation`, `calculateBurnoutRisk`'s
+  gap loop, and `classicBlocks` in `rv16-output-vs-classic.probe.ts` ("Exactly
+  `EnergyLabStore.#classicEvaluation`'s block construction") and in
+  `mode-cross-scoring.probe.ts`, the 300-day probe behind "The energy model is a
+  peer mode". `calculateInterleavedOrder` is one definition of the order, not of
+  the blocks built from it. Direction: one model export turns a classic plan
+  into schedule blocks; Burnout Risk keeps its stretch and trailing block by
+  scaling its own inputs.
+- **A12 — the deferred-🪫 count lives on the Lab — raised 2026-11-04.**
+  `pendingDrainLogCount` and `pendingRestLogCount` read no Lab parameter, and
+  the first is the only thing `/analytics` reads off the Lab. Direction: both
+  move beside `drainLogsOn` in `EnergyObservationStore`, whose doc already
+  argues it ("both screens read it"), and both of `/analytics`' lines read that
+  one value, closing M120.
+- **A13 — one `/energy` visit is held by a layout-scoped store — raised
+  2026-11-04.** Ten `$state` fields describe a single visit (the order snapshot,
+  the draft, the budget curve), so the page arms and cancels the snapshot by
+  protocol (`resnapshotOrder()`'s cancel) and any plan member read off `/energy`
+  solves (M110); the arming was rewritten in 8f33169, 7c84c52 and 3e67bbb.
+  Direction: params, stop observations and the stop advisor stay in the layout;
+  the Lab's fold, which does no I/O, moves to `/energy`, per business/AGENTS.md
+  "Context is the creation rule"'s first question. The member count is a wash
+  (34 → about 7 + 27); the gain is the protocol, and `/` and `/analytics`
+  seeing seven members. Cost: `budgetCurve` and `draftImpact` stop surviving a
+  round trip off `/energy`. After A12.
+
+The defects.
+
+- **S9 — a fixture row returns to the real day through ✕'s undo — raised
+  2026-11-04, traced.** `removeTask`'s undo compares only dates, `/` offers ✕ on
+  the fixture's rows, and nothing dismisses the toast on navigation: ✕ a
+  fixture row, leave by "Start my own day", press Undo, and the fixture task is
+  spliced into the real day and auto-saved, against `demo-day.ts`'s "no
+  fabricated task can reach a real profile". A10 closes it.
+- **S10 — the constraints bar keeps the fixture's closed state on the visitor's
+  own day — raised 2026-11-04, traced.** `/` keys the bar on
+  `session.loadedDate` and the bar snapshots `isOpen` at mount, so a visitor who
+  arrived cold on `/?demo` and presses "Start my own day" gets a 0 h day with the
+  bar closed, where a fresh `/` opens it. A10 closes it.
+- **S11 — an edit still inside the auto-save debounce is lost when the fixture
+  seeds — raised 2026-11-04, traced, racy.** `#seedDemoDay` sets
+  `#isShowingDemo` without flushing the pending write, and `#persistSession`
+  refuses under it, so an edit made within `AUTOSAVE_DEBOUNCE_MS` of opening the
+  example day is gone when the visitor leaves it. `#loadSession` flushes first.
+- **M120 — `/analytics` prints the deferred-🪫 count from two sources — raised
+  2026-11-04, drift traced.** The drain card reads the Lab's live
+  `pendingDrainLogCount`, the "Your model" note `readModelReport`'s
+  `pendingDrainCount`, taken once on mount, so a 🪫 dropped on the page moves one
+  and not the other. A12 closes it.
+- **M121 — "the whole banding policy in one module" is false — raised
+  2026-11-04.** presentation/AGENTS.md's "Metric color-band thresholds live in
+  the presentation layer" says so of `band.ts`, but `metric-descriptor.ts` bands
+  Zenith Gain (`>= 15`, `>= 5`) and Quick Wins inline, and `/analytics` colours
+  its completion-rate delta with class strings in the route, against the same
+  section's "A view model carries a `Band`, never a class string". The
+  thresholds move into `band.ts` or the section names them; the file is at its
+  budget.
+- **M122 — a signed percent is spelled three ways and has drifted — raised
+  2026-11-04.** `/analytics`' rate delta prints "+0%" and a hyphen-minus; Zenith
+  Gain in `metric-descriptor.ts` and plan-advice's `signedPlanValue` print "0%"
+  and "−" (R3).
+- **M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses two —
+  raised 2026-11-04.** "`SessionStore` has a second day source" names
+  `logDrain` and `isStopAdviceReady` but not the Lab's order snapshot (M119's
+  fix) or the "what tomorrow already holds" effect. The file is at its budget,
+  and A10 shortens the list rather than growing it.
+- **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
+  `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
+  offer, where docs/design.md has "an action is present when its callback is".
