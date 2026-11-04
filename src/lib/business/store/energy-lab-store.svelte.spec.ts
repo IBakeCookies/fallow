@@ -584,17 +584,17 @@ describe('EnergyLabStore', () => {
 	/* A Lab reached from the example day by its nav link lists the visitor's own day in
 	   that day's plan order. It does not keep the store's order for the whole visit. */
 	it('sorts the real day by its plan when the example day is left for the Lab', async () => {
-		// The example day, seeded under today's date
+		// The example day, which no stored day stands behind
 		mockSession.tasks = threeTasks();
-		mockSession.isShowingDemo = true;
+		mockSession.loadedDate = null;
 		mockSession.availableHours = 2;
 
 		const store = await setupPage();
 		flushSync();
 
-		// The visitor's own day lands under the same date
+		// The visitor's own day lands under the viewed date
 		mockSession.tasks = carriedTasks();
-		mockSession.isShowingDemo = false;
+		mockSession.loadedDate = mockSession.selectedDate;
 		flushSync();
 
 		const scheduled = plannedOrder(store);
@@ -1295,7 +1295,7 @@ describe('EnergyLabStore', () => {
 	it('holds the stop advice unready on the example day', async () => {
 		const store = await setup();
 
-		mockSession.isShowingDemo = true;
+		mockSession.loadedDate = null;
 		expect(store.isStopAdviceReady).toBe(false);
 	});
 

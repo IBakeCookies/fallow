@@ -3008,12 +3008,14 @@ describe('SessionStore demo mode', () => {
 		expect(createOrUpdateFlowObservationMock).not.toHaveBeenCalled();
 	});
 
-	// What the layout hands `logDrain`. `isDemo` is gone the moment the param is,
-	// while the fixture is still the day a 🪫 rating would land on.
-	it('reports the example day on screen until their own day replaces it', async () => {
+	// What the layout hands `logDrain` and the Lab reads. `isDemo` is gone the moment
+	// the param is, while the fixture is still the day a 🪫 rating would land on.
+	it('reports no loaded day until their own day replaces the example day', async () => {
 		const store = mount();
 
 		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+
+		expect(store.loadedDate).toBeNull();
 
 		let land!: (session: null) => void;
 
@@ -3026,10 +3028,10 @@ describe('SessionStore demo mode', () => {
 
 		await vi.waitFor(() => expect(readSessionByDateMock).toHaveBeenCalledWith(store.today));
 		expect(store.isDemo).toBe(false);
-		expect(store.isShowingDemo).toBe(true);
+		expect(store.loadedDate).toBeNull();
 
 		land(null);
 
-		await vi.waitFor(() => expect(store.isShowingDemo).toBe(false));
+		await vi.waitFor(() => expect(store.loadedDate).toBe(store.today));
 	});
 });
