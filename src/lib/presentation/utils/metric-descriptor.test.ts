@@ -293,7 +293,7 @@ describe('buildMetrics', () => {
 		const untouched = dailyMetrics({
 			...plannedDay,
 			completedTasks: 0,
-			yieldIndex: 0,
+			yieldIndex: null,
 		});
 
 		expect(reading(untouched, m.metric_yield_index()).value).toBe(m.na_value());

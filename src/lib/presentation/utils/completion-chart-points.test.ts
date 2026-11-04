@@ -11,7 +11,7 @@ const summary = (date: string, completionRate: number, completedTasks = 1): DayS
 	totalTasks: 2,
 	completedTasks,
 	completionRate,
-	yieldIndex: 80,
+	yieldIndex: completedTasks > 0 ? 80 : null,
 	quadrant: 'flow',
 	availableHours: 8,
 	switchCost: 0.25,
