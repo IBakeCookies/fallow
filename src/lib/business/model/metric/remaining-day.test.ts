@@ -292,6 +292,31 @@ describe('calculateRemainingDay', () => {
 		).toBeLessThanOrEqual(4 + 1e-9);
 	});
 
+	// ROADMAP M118, brief in zenith.test.ts "Switch Overhead". One candidate, so
+	// only the finished task's switch, charged here and not by the allocator, can
+	// move the answer.
+	it("credits no hours for a finished task's switch under a negative switch cost", () => {
+		const plannedAt = (switchCost: number) =>
+			calculateRemainingDay(
+				input(
+					[
+						{
+							...SPEC,
+							completed: true,
+						},
+						GYM,
+					],
+					[[SPEC.id, 1]],
+					{
+						availableHours: 1.5,
+						switchCost,
+					},
+				),
+			)?.plannedHours;
+
+		expect(plannedAt(-0.25)).toBe(plannedAt(0));
+	});
+
 	it('names nothing to do next once the remainder funds nothing', () => {
 		const remaining = calculateRemainingDay(input([SPEC, GYM], [[SPEC.id, 7]]));
 
