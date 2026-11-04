@@ -995,3 +995,37 @@ test('the ranking says how many of today’s ratings it has not counted', async 
 		timeout: 15000,
 	});
 });
+
+test('a rating dropped today leaves the ranking’s line', async ({ page }) => {
+	await seedRankableDrainLogs(page);
+	await writeDrainLog(page, isoDate(0), 'Deep work', 8);
+	await page.goto('/analytics');
+
+	const ranking = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Most draining per hour',
+		}),
+	});
+
+	await expect(ranking.getByText('1 rating logged today, counted from tomorrow')).toBeVisible({
+		timeout: 15000,
+	});
+
+	// Newest first, so the first row is today's.
+	await page
+		.getByRole('button', {
+			name: /^Delete Session rating logged on/,
+		})
+		.first()
+		.click();
+
+	await expect(
+		page.getByRole('button', {
+			name: /^Delete Session rating logged on/,
+		}),
+	).toHaveCount(6);
+
+	// The card is still there, so the line below is gone for its own reason.
+	await expect(ranking.getByText('Deep work fastest · Inbox slowest')).toBeVisible();
+	await expect(ranking.getByText(/logged today/)).toHaveCount(0);
+});
