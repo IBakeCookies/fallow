@@ -1419,9 +1419,9 @@ Three read-only explorers over the hot spots of the last 150 commits —
 `SessionStore`'s day on screen and who keys on it, `EnergyLabStore`'s interface,
 the routes and the task row — with each kept claim re-checked against the code.
 Nothing was run but grep and git: an entry marked _traced_ was found by reading
-and has not been reproduced. A5 and A6 stand, wider (above); A7, A8 and A9 hold
-as written. Four candidates were dropped against what already answers them: the
-example day as a second storage adapter (each write needs its own refusal, so
+and has not been reproduced. A5 and A6 stand, wider (above); A8 and A9 hold as
+written, and A7 was fixed the same day. Four candidates were dropped against
+what already answers them: the example day as a second storage adapter (each write needs its own refusal, so
 one adapter with per-caller semantics), a load-generation token for the day (a
 same-day re-read is no new identity, 3e67bbb), the Lab's fits through
 `calibrateEnergyParams` (a different estimator on purpose, 16c958e), and a
@@ -1502,11 +1502,11 @@ The defects.
   2026-11-04.** `/analytics`' rate delta prints "+0%" and a hyphen-minus; Zenith
   Gain in `metric-descriptor.ts` and plan-advice's `signedPlanValue` print "0%"
   and "−" (R3).
-- **M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses two —
+- **M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses one —
   raised 2026-11-04.** "`SessionStore` has a second day source" names
-  `logDrain` and `isStopAdviceReady` but not the Lab's order snapshot (M119's
-  fix) or the "what tomorrow already holds" effect. The file is at its budget,
-  and A10 shortens the list rather than growing it.
+  `logDrain`, `isStopAdviceReady` and the Lab's order snapshot (M119's fix,
+  which added it) but not the "what tomorrow already holds" effect. The file is
+  at its budget, and A10 shortens the list rather than growing it.
 - **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
   `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
   offer, where docs/design.md has "an action is present when its callback is".
