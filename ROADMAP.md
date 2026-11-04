@@ -1478,11 +1478,9 @@ The defects.
 - **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
   `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
   offer, where docs/design.md has "an action is present when its callback is".
-- **M125 — the drain-ranking card names the deferred 🪫 from the arrival read —
-  raised 2026-11-04 by A12, drift traced.** `DrainRanking.deferredCount` counts
-  `AnalyticsStore`'s copy of the report's rows, so a 🪫 dropped on the page stays
-  named there after A12 took it off the model rows and the drain card.
-- **M126 — the model card's flow row names the deferred ⚡ from the arrival read —
-  raised 2026-11-04 by A12, drift traced.** The row reads the report's
-  `flow.pendingCount`, the Flow Calibration card `session.pendingFlowLogCount`,
-  so a ⚡ dropped on the page moves one and not the other: M120 for ⚡.
+- ~~**M125 — the drain-ranking card names the deferred 🪫 from the arrival
+  read.**~~ Raised by A12 and fixed 2026-11-04,
+  [drain-rating.e2e.ts](e2e/drain-rating.e2e.ts).
+- ~~**M126 — the model card's flow row names the deferred ⚡ from the arrival
+  read.**~~ Raised by A12 and fixed 2026-11-04,
+  [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).

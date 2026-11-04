@@ -926,7 +926,7 @@ describe('readModelReport ϕ skill', () => {
 		const skill = (await readModelReport(today, 30)).calibration.flow.skill;
 
 		// Today's log is the fifth scored one: the fit on `date < today` predicted
-		// it, even though no fit has read it (`pendingCount` is about fitting).
+		// it, even though no fit has read it (the causal window is about fitting).
 		expect(skill).not.toBeNull();
 		expect(skill!.scoredCount).toBe(5);
 		expect(scored).toBe(5);

@@ -279,8 +279,8 @@ export class SessionStore {
 	// business/model/AGENTS.md, "A plan for day D is fitted from logs dated strictly BEFORE D".
 	#constantsFit = $derived(fitFrom(this.#flowObservations, this.#selectedDate));
 
-	/** Logged but not yet counted — dated on or after the planned day.
-	 *  `FlowCalibrationCard` says so rather than printing a total the fit did not use. */
+	/** Logged but not yet counted — dated on or after the planned day. Both ⚡ lines
+	 *  on /analytics say so rather than printing a total the fit did not use. */
 	get pendingFlowLogCount() {
 		return this.#constantsFit.pendingCount;
 	}

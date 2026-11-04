@@ -88,6 +88,7 @@
 
 	const modelRows = $derived(
 		calibrationRows(calibration, getDateLocale(), {
+			flow: session.pendingFlowLogCount,
 			rest: observations.pendingRestLogCount,
 			drain: observations.pendingDrainLogCount,
 		}),
@@ -532,12 +533,12 @@
 				{/each}
 			</div>
 
-			{#if drainRanking.deferredCount > 0}
+			{#if pendingDrainLogs > 0}
 				<p class="mt-text-sm text-xs text-ty-secondary">
-					{drainRanking.deferredCount === 1
+					{pendingDrainLogs === 1
 						? m.energy_drain_pending_one()
 						: m.energy_drain_pending({
-								count: drainRanking.deferredCount,
+								count: pendingDrainLogs,
 							})}
 				</p>
 			{/if}

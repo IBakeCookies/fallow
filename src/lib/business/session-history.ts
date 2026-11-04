@@ -458,13 +458,10 @@ export interface FitTrend {
  * "over what period?" the same way.
  */
 export interface CalibrationSnapshot {
-	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count
-	 *  (§5.2); `pendingCount` is the raw rows dated today, which no fit has read
-	 *  yet and which the row therefore names rather than folds in. */
+	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count (§5.2). */
 	flow: {
 		fitted: boolean;
 		usedCount: number;
-		pendingCount: number;
 		phiHours: number;
 		defaultPhiHours: number;
 		/** The §5 prequential gap in hours and the logs it is measured over, or
@@ -479,8 +476,8 @@ export interface CalibrationSnapshot {
 			{ gapFraction: number; scoredCount: number } | null
 		>;
 	};
-	/** `todayPending` is the same promise in λ₀'s unit: today is a day the fit
-	 *  will read tomorrow. It is 0 or 1 by construction, hence a boolean. */
+	/** `todayPending`: today is a day the λ₀ fit will read tomorrow. It is 0 or 1
+	 *  by construction, hence a boolean. */
 	stopping: StoppingValueFit & { todayPending: boolean };
 	/** The defaults each fit is anchored to — every row shows one next to its fit. */
 	defaults: EnergyParams;
@@ -562,7 +559,6 @@ function calibrationSnapshotFrom(
 	const flow = {
 		fitted: fit.fitted,
 		usedCount: fit.usedCount,
-		pendingCount: fit.pendingCount,
 		phiHours: referencePhi(fit.constants),
 		defaultPhiHours: referencePhi(DEFAULT_USER_CONSTANTS),
 		skill,
