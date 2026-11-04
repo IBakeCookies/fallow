@@ -1435,12 +1435,8 @@ The deepenings, strongest first.
 - ~~**A11 — the classic plan's energy schedule is built four times.**~~ Fixed
   2026-11-04 with three more probe copies,
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
-- **A12 — the deferred-🪫 count lives on the Lab — raised 2026-11-04.**
-  `pendingDrainLogCount` and `pendingRestLogCount` read no Lab parameter, and
-  the first is the only thing `/analytics` reads off the Lab. Direction: both
-  move beside `drainLogsOn` in `EnergyObservationStore`, whose doc already
-  argues it ("both screens read it"), and both of `/analytics`' lines read that
-  one value, closing M120.
+- ~~**A12 — the deferred-🪫 count lives on the Lab.**~~ Fixed 2026-11-04 with
+  M120, [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).
 - **A13 — one `/energy` visit is held by a layout-scoped store — raised
   2026-11-04.** Ten `$state` fields describe a single visit (the order snapshot,
   the draft, the budget curve), so the page arms and cancels the snapshot by
@@ -1462,11 +1458,9 @@ The defects.
 - ~~**S11 — an edit still inside the auto-save debounce is lost when the fixture
   seeds.**~~ Fixed 2026-11-04,
   [session-store.svelte.spec.ts](src/lib/business/store/session-store.svelte.spec.ts).
-- **M120 — `/analytics` prints the deferred-🪫 count from two sources — raised
-  2026-11-04, drift traced.** The drain card reads the Lab's live
-  `pendingDrainLogCount`, the "Your model" note `readModelReport`'s
-  `pendingDrainCount`, taken once on mount, so a 🪫 dropped on the page moves one
-  and not the other. A12 closes it.
+- ~~**M120 — `/analytics` prints the deferred-🪫 count from two sources.**~~
+  Fixed 2026-11-04 by A12, with the ☕ count the recovery row read the same way,
+  [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).
 - **M121 — "the whole banding policy in one module" is false — raised
   2026-11-04.** presentation/AGENTS.md's "Metric color-band thresholds live in
   the presentation layer" says so of `band.ts`, but `metric-descriptor.ts` bands
@@ -1484,3 +1478,11 @@ The defects.
 - **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
   `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
   offer, where docs/design.md has "an action is present when its callback is".
+- **M125 — the drain-ranking card names the deferred 🪫 from the arrival read —
+  raised 2026-11-04 by A12, drift traced.** `DrainRanking.deferredCount` counts
+  `AnalyticsStore`'s copy of the report's rows, so a 🪫 dropped on the page stays
+  named there after A12 took it off the model rows and the drain card.
+- **M126 — the model card's flow row names the deferred ⚡ from the arrival read —
+  raised 2026-11-04 by A12, drift traced.** The row reads the report's
+  `flow.pendingCount`, the Flow Calibration card `session.pendingFlowLogCount`,
+  so a ⚡ dropped on the page moves one and not the other: M120 for ⚡.

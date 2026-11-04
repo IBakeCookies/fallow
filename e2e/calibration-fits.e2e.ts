@@ -702,55 +702,7 @@ test('resetting personalization reverts to the default constants', async ({ page
 
 /* Goal — a 🪫 or ☕ I drop from the log list on analytics stops being named on every
    card that named it: the "Your model" rows say what waits for tomorrow from the same
-   live count the Drain Calibration card does, not from the report read on arrival.
-
-   Tests: e2e/calibration-fits.e2e.ts (the three below);
-   src/lib/business/store/energy-observation-store.svelte.spec.ts ("counts the ratings
-   and breaks the fits defer…", "defers from today while the loaded day is a later one");
-   src/lib/presentation/utils/calibration-descriptor.test.ts ("names a ☕ logged today on
-   the recovery row", "names the 🪫 logged today on both drain rows") — the counts now
-   arrive as a third argument, which every other call passes as NONE_PENDING.
-   Pins: "a drain rating dropped on analytics leaves the drain card" — the premise:
-   the card already reads the live count.
-   Removed with this plan, as pins of the shape it replaces: the Lab spec's "counts the
-   deferred drain and rest rows rather than dropping them" and "defers from today while
-   the session holds a later day"; session-history.test.ts' "defers a ☕ logged today,
-   and counts it from tomorrow" and "defers the 🪫 logged today".
-   Out of scope:
-   - the drain-ranking card's deferred line (`DrainRanking.deferredCount`, the report's
-     rows) — the same drift, its own commit after this one
-   - the flow row's `flow.pendingCount` against `session.pendingFlowLogCount` — the same
-     drift for ⚡, its own commit after this one
-   - the rest of the model card staying the report read on arrival (its fits and counts
-     after a past log is dropped, or past midnight)
-   - A13, which comes after this
-   Read before building:
-   - src/lib/business/store/energy-observation-store.svelte.ts — the two counts go
-     beside `drainLogsOn`, windowed at `liveToday.value`, whose doc already argues
-     "both screens read it"
-   - src/lib/business/store/energy-lab-store.svelte.ts, "Deferred logs" — the two
-     windows and getters that move; `applyCausalWindow` has no other use there
-   - src/routes/(app)/energy/+page.svelte — reads both counts off the Lab today
-   - src/routes/(app)/analytics/+page.svelte — the drain card's `lab.pendingDrainLogCount`
-     (the page's only read off the Lab, so `getEnergyLabStore` goes) and
-     `calibrationRows`
-   - src/lib/presentation/utils/calibration-descriptor.ts — reads
-     `energy.pendingDrainCount` / `pendingRestCount`; takes
-     `pending: { rest: number; drain: number }` after `locale` instead
-   - src/lib/business/session-history.ts, `CalibrationSnapshot['energy']` — drop
-     `pendingRestCount` / `pendingDrainCount` and their windows' use there: no reader
-     is left, and a second copy of the store's number is R3's defect
-   - src/lib/business/AGENTS.md, "Being a today-only instrument does not exempt its
-     fits" — says where the deferred ☕/🪫 count lives
-   Decisions: one live count in `EnergyObservationStore`, read by both screens and by
-   every line on /analytics that names it (ROADMAP A12's direction). Rejected keeping
-   the report's copy and re-reading the report on a drop: it re-runs the 30-day audit
-   to move one count. Accepted: past midnight on an open /analytics the model rows stop
-   naming yesterday's rows while their counts are still the arrival read's — the drain
-   card already does, and a reload re-reads both. The model card also waits on
-   `observations.isLoading`, as the drain card does, so it never prints a 0 the
-   store has not read.
-   Roadmap: A12, M120 */
+   live count the Drain Calibration card does. */
 
 /** A model-card row, by the parameter it reads. */
 const modelRow = (page: Page, label: string) =>
