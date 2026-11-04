@@ -95,7 +95,7 @@
  * family.
  *
  * In absolute ms on the paths the product takes, over app-shaped days (3-8
- * tasks × 6-10 h): one solve — `EnergyLabStore`'s `#plan`, once per slider
+ * tasks × 6-10 h): one solve — `EnergyPlanStore`'s `#plan`, once per slider
  * move — median ~131-149 ms at cap 3 against ~181-183 at cap 4 (two runs:
  * 131.3/181.2, 149.4/183.2), p95 ~298-339 against ~381-398;
  * `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, ~721-746 ms
@@ -777,7 +777,7 @@ describe('energy search gap', () => {
 
 	/**
 	 * The same cap priced in ABSOLUTE ms on the paths the product takes, because
-	 * a ratio cannot say whether a change is felt: `EnergyLabStore`'s `#plan` is
+	 * a ratio cannot say whether a change is felt: `EnergyPlanStore`'s `#plan` is
 	 * one solve per slider move, `suggestBudgetCurve` is a solve per 45-min
 	 * budget step, and `auditPlanAdherence` is one per logged day. The days here
 	 * are app-shaped (3-8 tasks, 6-10 h) rather than the arm above's 12 h ladder.

@@ -12,7 +12,7 @@ In the Energy Lab's task list, every row shows the hours the schedule gave that 
 
 ## Traps
 
-- R2 — the single-task optimum comes from `findOptimalSingleTaskTime` in `$lib/business/model/zenith`, and the naive answer imports it straight into `src/routes/(app)/energy/+page.svelte` or `energy-task-row.svelte` (or into a `presentation/utils` helper), instead of exposing the value from `EnergyLabStore` alongside `scheduledTasks`.
+- R2 — the single-task optimum comes from `findOptimalSingleTaskTime` in `$lib/business/model/zenith`, and the naive answer imports it straight into `src/routes/(app)/energy/+page.svelte` or `energy-task-row.svelte` (or into a `presentation/utils` helper), instead of exposing the value from `EnergyPlanStore` alongside `scheduledTasks`.
 
 ## Checks
 

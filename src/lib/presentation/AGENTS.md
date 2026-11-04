@@ -103,7 +103,7 @@ Untestable at every level is the signal.
   the panel can fill the title field — the shape `task-list-card` already uses
   for `form(close)`. `/` renders `TaskFormPreview` off
   `DailyPlanStore.draftImpact`, `/energy` renders `TaskFormEnergyPreview` off
-  `EnergyLabStore.draftImpact`; both pass `ondraftchange`, and the form publishes
+  `EnergyPlanStore.draftImpact`; both pass `ondraftchange`, and the form publishes
   only what a solve reads — the three ratings and the importance — and `null`
   while the title is blank, since an unnamed task is not one the day can be
   priced with, and the panel then renders the prompt line rather than numbers
@@ -838,11 +838,11 @@ decides it — pips or bar, and none at all on an N/A or a total of nothing.
 
 Settled 2026-08-05. Sorting it live is wrong: every parameter edit re-optimizes,
 so the rows re-ranked mid-drag and moved the row being dragged out from under
-the cursor. A visit is the page's `onMount` calling `lab.resnapshotOrder()` —
-first paint and every re-navigation — or a day change under the open page
-(midnight: `/energy` takes no date), pinned by "re-sorts to the new day's plan
-when the day changes under the open page". Only positions freeze: every number
-in a row stays live, so a stale order never shows a stale reading.
+the cursor. A visit is the life of the page's own `EnergyPlanStore` ("…re-sorts
+on the next visit") or a day change under the open page (midnight: `/energy`
+takes no date; "re-sorts to the new day's plan when the day changes under the
+open page"). Only positions freeze: every number in a row stays live, so a stale
+order never shows a stale reading.
 
 The snapshot is the **whole** day's order — scheduled tasks first, then the
 unfunded, in the store's own order — so "has no position" means exactly one

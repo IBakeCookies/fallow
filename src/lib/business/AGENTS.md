@@ -104,11 +104,11 @@ code — six were, across `SessionStore`, `EnergyLabStore` and
 
 ### Every store reaches a route through its `setXStore()`
 
-All nine (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
+All ten (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
 `EnergyObservationStore`, `SessionTimerStore`, `DailyPlanStore`,
-`AnalyticsStore`, `EnergyLabStore`, `CalendarStore`). Sole exception: a
-`*.test-harness.svelte`, which constructs directly because the store under test
-is the thing it hands back.
+`AnalyticsStore`, `EnergyLabStore`, `EnergyPlanStore`, `CalendarStore`). Sole
+exception: a `*.test-harness.svelte`, which constructs directly because the
+store under test is the thing it hands back.
 
 A bare `new XStore(...)` in a route is not a shortcut, it is the hole:
 `setContext` **throws outside component initialisation**, which is what makes
@@ -127,9 +127,9 @@ derived from the environment (e.g. the clock), never user data.
 layout for `ThemeStore`, `(app)` for `StorageStatusStore`, `SessionStore`,
 `EnergyObservationStore`, `EnergyLabStore` and `SessionTimerStore` (status store
 first, because the three that report into it register their re-reads there; the
-timer reports nothing — R4's `localStorage` tier), the
-route's own instance script for `setDailyPlanStore` in `/`, `setAnalyticsStore`
-in `/analytics` and `setCalendarStore` in `/calendar`.
+timer reports nothing — R4's `localStorage` tier), the route's own instance
+script for `setDailyPlanStore` in `/`, `setEnergyPlanStore` in `/energy`,
+`setAnalyticsStore` in `/analytics` and `setCalendarStore` in `/calendar`.
 **Every store loads at init** — in its constructor, so a caller holding one
 never has to know it is inert. Three questions place the call:
 
@@ -167,14 +167,14 @@ the trade runs the same way in each direction:
 - **In the layout when every staleness reason has a key.** `EnergyLabStore`
   moved there: its params are the Lab's alone, but any write to a past day moves
   its stop observations, so their re-read keys on `SessionStore`'s past-write
-  generation. The optimizer behind `plan` stays unrun off `/energy`, pinned by
-  "solves the plan only to fill an order the page asked for" and "solves nothing
-  when the day changes after the page has left". What it buys is the ~120 ms of
-  placeholder a page-scoped store spent re-reading on every visit. A staleness
-  reason with no such key means a named refresh instead, called by whoever knows
-  the reason — `SessionStore` has two, `retryLoad()` for the banner's button and
-  a `visibilitychange` re-read for a returning tab. A refresh is not the
-  `load()` above: it leaves the store valid, only less current.
+  generation. The plan is `/energy`'s own `EnergyPlanStore`, pinned by
+  "solves nothing while `/` moves the window and the day". What it buys is the
+  ~120 ms of placeholder a page-scoped store spent re-reading on every visit. A
+  staleness reason with no such key means a named refresh instead, called by
+  whoever knows the reason — `SessionStore` has two, `retryLoad()` for the
+  banner's button and a `visibilitychange` re-read for a returning tab. A
+  refresh is not the `load()` above: it leaves the store valid, only less
+  current.
 - **A layout-scoped debounced write flushes on app teardown, not route
   teardown**, and that is not a loss: the pending timer stays alive to fire on
   its own precisely _because_ the store did, and `visibilitychange` still
@@ -410,13 +410,13 @@ The cost rule, and it decides the shape of every reading that solves the day.
 **A reading costing one solve per candidate goes behind a method; a reading
 costing one solve may stay a `$derived`.**
 
-| Reading                             | Shape                      | Cost                                                                                                     |
-| ----------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `suggestPlanAdjustments`            | `computeAdvice()` + a flag | one solve per candidate — ~75–80 ms median on a 12-task day at 8 h, ~1.4 s at 24 h; a frozen main thread |
-| `DailyPlanStore.draftImpact`        | `$derived`                 | one solve, what `#daily` already costs per keystroke                                                     |
-| `EnergyLabStore.computeDraftImpact` | method behind a button     | the energy optimizer, 35-195 ms at an 8 h window (n = 3 to n = 20)                                       |
-| `computeNextTasks`                  | method, withdraws          | one solve per capped candidate                                                                           |
-| `#remainingDay`                     | `$derived`, gated          | 12.4 ms at n = 12, 0.001 ms until something is logged                                                    |
+| Reading                              | Shape                      | Cost                                                                                                     |
+| ------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `suggestPlanAdjustments`             | `computeAdvice()` + a flag | one solve per candidate — ~75–80 ms median on a 12-task day at 8 h, ~1.4 s at 24 h; a frozen main thread |
+| `DailyPlanStore.draftImpact`         | `$derived`                 | one solve, what `#daily` already costs per keystroke                                                     |
+| `EnergyPlanStore.computeDraftImpact` | method behind a button     | the energy optimizer, 35-195 ms at an 8 h window (n = 3 to n = 20)                                       |
+| `computeNextTasks`                   | method, withdraws          | one solve per capped candidate                                                                           |
+| `#remainingDay`                      | `$derived`, gated          | 12.4 ms at n = 12, 0.001 ms until something is logged                                                    |
 
 The frozen thread is the budget field, which re-derives on every keystroke. The
 cost tracks the budget the range input drags more than n: over 40 seeded
@@ -438,7 +438,7 @@ Four rules the table cannot carry:
   the same object twice, so identity reports staleness on a day that never
   changed.
 - **The fingerprint carries the DATE as well as the inputs** — `isAdviceStale`
-  and `EnergyLabStore`'s `#curveFingerprint` both. `selectedDate` follows the
+  and `EnergyPlanStore`'s `#curveFingerprint` both. `selectedDate` follows the
   live clock and the URL while `#loadSession` is async, so a navigation and the
   midnight tick each move the day with the previous day's tasks still in
   memory, and a held reading reports FRESH right through that window. Any
@@ -464,13 +464,13 @@ Four rules the table cannot carry:
   effect. It publishes no busy flag — the panel reads `nextTasks === null` as
   "still working", which is the same fact.
 
-### `EnergyLabStore` never writes to the daily session
+### The Lab's two stores never write to the daily session
 
-Its params live in IndexedDB (`settings` store, key `energyParams`) — see R4 —
-orchestrated by that store, not by the route. The **day window is not a param**:
-it is `session.availableHours`, one value shared both ways with the main page
+The params live in IndexedDB (`settings` store, key `energyParams`, R4),
+orchestrated by `EnergyLabStore`, not by the route. The **day window is not a
+param**: it is `session.availableHours`, one value shared both ways with `/`
 (settled 2026-07-29 — neither mode is the better one, so neither owns the day's
-hours). The store reads it; `/energy` writes it, like every other session field
+hours). Both stores read it; `/energy` writes it, like every other session field
 that route edits. There is deliberately **no** `|| 8` fallback and no lab-local
 override: either would render a window the main page does not have, which is
 the fork this replaced.
@@ -494,11 +494,11 @@ state half.
 ### `scheduledTasks` carries the task's true effort
 
 The Lab's ledger heads an `Effort` column, so the row needs `E` — and R2 keeps
-the mapping out of the component: `#scheduledTasks` attaches
+the mapping out of the component: `EnergyPlanStore`'s `#scheduledTasks` attaches
 `trueEffort: mapEffort(getEffectiveDifficulty(task))`, the same field name and
 the same number `SuggestedTask` already carries, so the two screens cannot print
-different efforts for one task. The public getter's shape is `Task & { trueEffort
-}`; nothing else about the snapshot order changed.
+different efforts for one task. The public getter's shape is
+`Task & { trueEffort }`.
 
 ### An unseen day's budget is prefilled, and that is not the Lab's `|| 8`
 

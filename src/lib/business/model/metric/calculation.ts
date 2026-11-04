@@ -992,7 +992,7 @@ export type InterleavedPredecessor = {
  * objective-maximizing order moves `calculateBurnoutRisk` by >5 points on a
  * third of days in no consistent direction. One definition for all four
  * consumers: the `#N` badges, burnout's block sequence, the mid-day re-plan's
- * next-up task and `EnergyLabStore`'s classic schedule.
+ * next-up task and `EnergyPlanStore`'s classic schedule.
  *
  * The alternation takes an optional predecessor, so position 1 can contrast with
  * a task outside the list — and that task is exempt from the contrast, because

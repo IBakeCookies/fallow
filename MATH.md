@@ -1141,7 +1141,7 @@ threshold: at most C(4,2) = 6 seeds, so the family's cost is flat in n
 where C(n,2)'s is quadratic. `energy-search-gap.probe.ts` prices the cap
 against its neighbours and against both ends — no pair seeds, and unbounded
 C(n,2) — and measures what each forfeits. Three call sites pay it —
-`EnergyLabStore`'s `$derived` behind the parameter sliders, `plan-audit.ts`
+`EnergyPlanStore`'s `$derived` behind the parameter sliders, `plan-audit.ts`
 once per audited day under a 30-day cap, and `suggestBudgetCurve`, whose 16
 solves per sweep make it the largest single multiplier (on demand, never a
 `$derived`).
@@ -1524,7 +1524,7 @@ know. Candidates:
   - **Rejected as the source — re-solving the day's plan at fit time.**
     `plan-audit.ts` already does it per finished day, and it works. It is
     disqualified by this section's own feasibility finding 3:
-    `EnergyLabStore.#stoppingFit` is a `$derived` over ALL finished days with
+    `EnergyPlanStore.#stoppingFit` is a `$derived` over ALL finished days with
     no day cap. It is also sparse — a `fitSnapshot` exists only for days the
     user opened Analytics on — and the plan is a proxy for the worked day, not
     the worked day.
@@ -2075,7 +2075,7 @@ null exists to prevent.
 **Cost.** 16 solves at the default cap — the do-nothing point makes 17 budgets,
 not 17 solves. Each is one `optimizeSchedule`, priced by
 `energy-search-gap.probe.ts` rather than a second copy of one cell here. It therefore lives behind an explicit click
-in `EnergyLabStore.computeBudgetCurve`, on `suggestPlanAdjustments`' on-demand
+in `EnergyPlanStore.computeBudgetCurve`, on `suggestPlanAdjustments`' on-demand
 contract, and is deliberately **not** a `$derived`. Its staleness fingerprint
 omits the budget on purpose: the curve is a statement about _every_ budget, so
 dragging the window must not grey out the card that exists to inform that drag.
