@@ -90,11 +90,7 @@ const restRecord = (
 /** The day the harness says its tasks belong to — never the live clock's. */
 const LOADED_DAY = '2000-01-01';
 
-async function setup(
-	tasks: Task[] = [task()],
-	date: string | null = LOADED_DAY,
-	isShowingDemo = false,
-) {
+async function setup(tasks: Task[] = [task()], date: string | null = LOADED_DAY) {
 	const status = new StorageStatusStore();
 	let store!: EnergyObservationStore;
 
@@ -103,7 +99,6 @@ async function setup(
 		readDay: () => ({
 			date,
 			tasks,
-			isShowingDemo,
 		}),
 		status,
 	});
@@ -151,15 +146,6 @@ describe('EnergyObservationStore', () => {
 	// that reuses the task's id — and the date is the store's.
 	it('refuses a rating on a day ahead', async () => {
 		const { store } = await setup([task()], '2999-01-01');
-
-		await store.logDrain(1, 3, 9, 4);
-
-		expect(createDrainMock).not.toHaveBeenCalled();
-	});
-
-	// A rating of a fabricated task would enter the visitor's own α fit.
-	it('refuses a rating on the example day', async () => {
-		const { store } = await setup([task()], LOADED_DAY, true);
 
 		await store.logDrain(1, 3, 9, 4);
 

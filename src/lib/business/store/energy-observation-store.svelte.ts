@@ -23,10 +23,9 @@ const CONTEXT_KEY = Symbol();
 /**
  * The loaded day with its tasks — a drain rating captures the rated task's
  * demands and is stamped with the day those tasks belong to. `date` is null
- * while no day is loaded; `isShowingDemo` says the tasks are the example day's
- * (the session's write flag, not `isDemo`).
+ * while no stored day is loaded, as on the example day.
  */
-export type ReadLoadedDay = () => { date: string | null; tasks: Task[]; isShowingDemo: boolean };
+export type ReadLoadedDay = () => { date: string | null; tasks: Task[] };
 
 /**
  * Drain and rest observations: the measurements that calibrate the energy
@@ -169,14 +168,11 @@ export class EnergyObservationStore {
 	// Never a day ahead — nobody has worked it — and refused here as well as by
 	// the page, because an editor opened on today outlives a navigation.
 	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
-		const { date, tasks, isShowingDemo } = this.#readDay();
-
-		// Refused here, not at the call site (business/AGENTS.md).
-		if (isShowingDemo) return;
-
+		const { date, tasks } = this.#readDay();
 		const task = tasks.find((t) => t.id === id);
 
-		// A rating needs a day and the task's demands, so no loaded day, or an id
+		// A rating needs a day and the task's demands, so no loaded day (the example
+		// day's fabricated tasks would enter the visitor's own α fit), or an id
 		// the day no longer holds (a task deleted while the rating dialog was open),
 		// is nothing to log, not a storage failure — drop it silently rather than
 		// raise the banner.

@@ -261,13 +261,13 @@ which of the two flags a site takes is the whole of it:
   yesterday effect and the `visibilitychange` re-read stand down.
 - `#isShowingDemo` — whether the fixture is on screen. Gates the WRITES:
   `#persistSession`/`#deleteSession`, the auto-save effect, `logFlow`,
-  `EnergyObservationStore.logDrain` (the layout's thunk hands it the flag),
-  `saveCurrentAsRoutine`, `deleteRoutine`, the two tomorrow moves and their undo,
-  `#rewriteTagInHistory`, and the two remaining reads a click can still reach
-  (`readDeferDestination`, `importFromDate`) — and `EnergyLabStore`'s
-  `isStopAdviceReady` and order snapshot, so its clock and list read their own day.
-  Leaving the demo drops the param while the fixture is still in `#tasks`, and a
-  URL-keyed auto-save ran in exactly that gap and saved all six.
+  `saveCurrentAsRoutine`, `deleteRoutine`, the two tomorrow moves, their undo and
+  the carry count's read of what tomorrow holds, `#rewriteTagInHistory`, and the
+  two remaining reads a click can still reach (`readDeferDestination`,
+  `importFromDate`). Leaving the demo drops the param while the fixture is still
+  in `#tasks`, and a URL-keyed auto-save ran in exactly that gap and saved all
+  six. The public `loadedDate` reads null while the flag is set, so a reader
+  outside the store (`logDrain`, the Lab) refuses on the date and takes no flag.
 
 A write refused here and not at its call site, always. `logFlow` is why: the
 planner hides the ⚡ affordance in the demo (`canLog`), the Energy Lab renders
@@ -389,9 +389,8 @@ or speak for another store. Three consequences worth not undoing:
 Not the session store: the store is handed the loaded day together with its
 tasks and routes no date itself, so it needs none of the date-routing, load or
 auto-save state — only that one thunk and somewhere to report a failed write
-(`loadedDate`, `tasks` and `isShowingDemo`; ☕ stamps `liveToday`, which needs
-no store at all). It also needs no
-`initializeStorage()` ordering: the localStorage migration writes only sessions
+(`loadedDate` and `tasks`; ☕ stamps `liveToday`, which needs no store at all).
+It also needs no `initializeStorage()` ordering: the localStorage migration writes only sessions
 and `energyParams`, never these two object stores. What deliberately did **not**
 move (re-proposing it is churn):
 
