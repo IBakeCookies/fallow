@@ -1408,11 +1408,6 @@ negative cost the readings now refuse. The **M** series continues.
 The read-only review of the M115 fix found it clean, and one older gap in the
 same snapshot. The **M** series continues.
 
-- **M119 — a Lab reached from the example day lists the real day in the
-  store's order — raised 2026-10-04.** `#seedDemoDay` sets `loadedDate` to the
-  viewed day, so leaving `/?demo` by the Lab's nav link snapshots the order of
-  the six demo tasks. The real day then loads under the same date, so the
-  snapshot is not retaken, and its rows read in the store's order for the whole
-  visit. It predates M115: `#orderStale` took the same snapshot. It is the blind
-  spot business/AGENTS.md names for leaving the demo, which "tests
-  `#isShowingDemo` and not the two dates".
+- ~~**M119 — a Lab reached from the example day lists the real day in the
+  store's order.**~~ Fixed 2026-11-04,
+  [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).

@@ -229,16 +229,20 @@ export class EnergyLabStore {
 		});
 
 		// Fills the list's order snapshot while the page is open and the loaded day is not the
-		// one it was taken for. Both are read before the plan, so with no snapshot due the
-		// optimizer behind it never runs. Blocks arrive in schedule order, so first appearance
-		// IS the task's position in the day; a day with no window has none, and the snapshot
-		// waits until one is set.
+		// one it was taken for, nor the example day. All are read before the plan, so with no
+		// snapshot due the optimizer behind it never runs. Blocks arrive in schedule order, so
+		// first appearance IS the task's position in the day; a day with no window has none,
+		// and the snapshot waits until one is set.
 		$effect(() => {
 			if (!this.#isPageOpen) return;
 
 			// `/energy` takes no date, so arriving from `/?date=` asks while the session
 			// still holds the last day's tasks.
 			if (this.#session.loadedDate !== this.#session.selectedDate) return;
+
+			// The example day, still in memory while the visitor leaves `?demo`: the real day
+			// then loads under the same date, so a snapshot taken now is never retaken.
+			if (this.#session.isShowingDemo) return;
 
 			if (this.#snapshotDate === this.#session.loadedDate) return;
 
