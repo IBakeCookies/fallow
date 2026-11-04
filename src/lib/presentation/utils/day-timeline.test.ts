@@ -71,6 +71,24 @@ describe('buildDayTimeline', () => {
 		expect(timeline.blocks[1].startOffset).toBe(1.25);
 	});
 
+	// ROADMAP M118, brief in zenith.test.ts "Switch Overhead".
+	it('draws no switch gap under a negative switch cost', () => {
+		const timelineAt = (switchCost: number) =>
+			buildDayTimeline(
+				input({
+					suggestedTasks: [task(1, 1), task(2, 2)],
+					runOrder: new Map([
+						[1, 1],
+						[2, 2],
+					]),
+					switchCost,
+					availableHours: 4,
+				}),
+			);
+
+		expect(timelineAt(-0.25)).toEqual(timelineAt(0));
+	});
+
 	/* The rail draws the allocation in two patterns — hatched while the task warms up
 	   toward flow, solid once it is in flow — and dashes the hours flow would still
 	   have needed. The three are the block's own arithmetic on ϕ. */
