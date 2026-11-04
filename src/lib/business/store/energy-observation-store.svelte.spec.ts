@@ -3,7 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import Harness from '$lib/business/store/energy-observation-store.test-harness.svelte';
 import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
-import { toISODate } from '$lib/business/utils/date';
+import { addDays, toISODate } from '$lib/business/utils/date';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type {
@@ -240,6 +240,70 @@ describe('EnergyObservationStore', () => {
 		expect(day.get(1)?.map((log) => log.id)).toEqual([1, 2]);
 		expect(day.get(2)?.map((log) => log.id)).toEqual([3]);
 		expect(store.drainLogsOn('2026-08-10').size).toBe(0);
+	});
+
+	// The identity fits read only rows dated before today, so what both screens name
+	// beside a fit's count is the rest: today's rows. The loaded day is 2000-01-01, so a
+	// window closed there instead would defer yesterday's rows too.
+	it('counts the ratings and breaks the fits defer: today’s, not yesterday’s', async () => {
+		const today = toISODate();
+
+		readAllDrainMock.mockResolvedValue([
+			drainRecord({
+				id: 1,
+				date: today,
+			}),
+			drainRecord({
+				id: 2,
+				date: today,
+				hours: 1,
+			}),
+			drainRecord({
+				id: 3,
+				date: addDays(today, -1),
+			}),
+		]);
+
+		readAllRestMock.mockResolvedValue([
+			restRecord({
+				id: 4,
+				date: today,
+			}),
+			restRecord({
+				id: 5,
+				date: addDays(today, -1),
+			}),
+		]);
+
+		const { store } = await setup();
+		await vi.waitFor(() => expect(store.drainObservations).toHaveLength(3));
+
+		expect(store.pendingDrainLogCount).toBe(2);
+		expect(store.pendingRestLogCount).toBe(1);
+	});
+
+	// The window closes at the live clock's today, never at the day the tasks belong
+	// to: on a day ahead, today's rows are still the ones no fit has read.
+	it('defers from today while the loaded day is a later one', async () => {
+		const today = toISODate();
+
+		readAllDrainMock.mockResolvedValue([
+			drainRecord({
+				date: today,
+			}),
+		]);
+
+		readAllRestMock.mockResolvedValue([
+			restRecord({
+				date: today,
+			}),
+		]);
+
+		const { store } = await setup([task()], addDays(today, 1));
+		await vi.waitFor(() => expect(store.drainObservations).toHaveLength(1));
+
+		expect(store.pendingDrainLogCount).toBe(1);
+		expect(store.pendingRestLogCount).toBe(1);
 	});
 
 	// MATH.md §8.7: the α fit reads the demands off the record, so they have to be
