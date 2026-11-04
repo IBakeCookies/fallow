@@ -27,7 +27,6 @@ import {
 } from '$lib/business/model/zenith';
 import {
 	DEFAULT_ENERGY_PARAMS,
-	type ScheduleBlock,
 	evaluateSchedule,
 	optimizeSchedule,
 } from '$lib/business/model/zenith-energy';
@@ -35,6 +34,7 @@ import {
 	calculateInterleavedOrder,
 	calculateTaskPlan,
 	toEnergyTask,
+	toScheduleBlocks,
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
@@ -121,23 +121,13 @@ function classicObjective(tasks: Task[], budget: number, params = DEFAULT_ENERGY
 
 	if (funded.length === 0) return null;
 
-	const blocks: ScheduleBlock[] = [];
-
-	funded.forEach((task, index) => {
-		if (index > 0 && DEFAULT_SWITCH_COST > 0)
-			blocks.push({
-				taskId: null,
-				hours: DEFAULT_SWITCH_COST,
-			});
-
-		blocks.push({
-			taskId: task.id,
-			hours: task.suggestedHours,
-		});
-	});
-
-	return evaluateSchedule(blocks, tasks.map(toEnergyTask), budget, params, DEFAULT_USER_CONSTANTS)
-		.objective;
+	return evaluateSchedule(
+		toScheduleBlocks(funded, DEFAULT_SWITCH_COST),
+		tasks.map(toEnergyTask),
+		budget,
+		params,
+		DEFAULT_USER_CONSTANTS,
+	).objective;
 }
 
 /** Smallest b within `tol` of the best — the knee, since net is flat past it. */

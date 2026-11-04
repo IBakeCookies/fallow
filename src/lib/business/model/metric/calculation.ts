@@ -644,7 +644,7 @@ export function calculateBurnoutRisk(
 	const overhead = calculatePlanSwitchHours(suggestedTasks, switchCost);
 	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 	const overhang = Math.max(0, budget - overhead - allocated);
-	const blocks: ScheduleBlock[] = [];
+	let blocks: ScheduleBlock[];
 	let demands: ReservoirDemand[];
 
 	if (allocated > 0) {
@@ -652,18 +652,13 @@ export function calculateBurnoutRisk(
 		// share of the plan — the same assumption the heuristic documented.
 		const stretch = 1 + overhang / allocated;
 
-		funded.forEach((t, i) => {
-			if (i > 0 && switchCost > 0)
-				blocks.push({
-					taskId: null,
-					hours: switchCost,
-				});
-
-			blocks.push({
-				taskId: t.id,
-				hours: t.suggestedHours * stretch,
-			});
-		});
+		blocks = toScheduleBlocks(
+			funded.map((t) => ({
+				id: t.id,
+				suggestedHours: t.suggestedHours * stretch,
+			})),
+			switchCost,
+		);
 
 		demands = funded.map((t) => ({
 			id: t.id,
@@ -675,10 +670,12 @@ export function calculateBurnoutRisk(
 		const avgCog = suggestedTasks.reduce((sum, t) => sum + t.mentalDifficulty, 0) / (10 * n);
 		const avgPhys = suggestedTasks.reduce((sum, t) => sum + t.physicalDifficulty, 0) / (10 * n);
 
-		blocks.push({
-			taskId: -1,
-			hours: budget,
-		});
+		blocks = [
+			{
+				taskId: -1,
+				hours: budget,
+			},
+		];
 
 		demands = [
 			{
@@ -1039,6 +1036,33 @@ export function calculateInterleavedOrder<T extends OrderableTask>(
 	}
 
 	return order;
+}
+
+/**
+ * A run order as an energy-model schedule: each task's hours in sequence, with
+ * a `switchCost` rest gap between consecutive tasks (none when the cost is not
+ * positive). How a classic plan is scored under the energy model.
+ */
+export function toScheduleBlocks(
+	order: { id: number; suggestedHours: number }[],
+	switchCost: number,
+): ScheduleBlock[] {
+	const blocks: ScheduleBlock[] = [];
+
+	order.forEach((task, index) => {
+		if (index > 0 && switchCost > 0)
+			blocks.push({
+				taskId: null,
+				hours: switchCost,
+			});
+
+		blocks.push({
+			taskId: task.id,
+			hours: task.suggestedHours,
+		});
+	});
+
+	return blocks;
 }
 
 /**

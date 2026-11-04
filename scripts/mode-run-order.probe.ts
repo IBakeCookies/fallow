@@ -43,6 +43,7 @@ import {
 	calculateInterleavedOrder,
 	calculateTaskPlan,
 	toEnergyTask,
+	toScheduleBlocks,
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
@@ -136,22 +137,13 @@ function shuffled<T>(items: T[], random: () => number): T[] {
  * gaps, intended overwork spread pro-rata over the funded blocks.
  */
 function blocksFor(order: SuggestedTask[], stretch: number, switchCost: number): ScheduleBlock[] {
-	const blocks: ScheduleBlock[] = [];
-
-	order.forEach((task, index) => {
-		if (index > 0 && switchCost > 0)
-			blocks.push({
-				taskId: null,
-				hours: switchCost,
-			});
-
-		blocks.push({
-			taskId: task.id,
-			hours: task.suggestedHours * stretch,
-		});
-	});
-
-	return blocks;
+	return toScheduleBlocks(
+		order.map((task) => ({
+			id: task.id,
+			suggestedHours: task.suggestedHours * stretch,
+		})),
+		switchCost,
+	);
 }
 
 const demandsFor = (order: SuggestedTask[]): ReservoirDemand[] =>

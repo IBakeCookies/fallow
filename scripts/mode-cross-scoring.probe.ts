@@ -17,7 +17,7 @@
  *     order;
  *   - energy `objective`: `optimizeSchedule().evaluation` for the energy plan,
  *     and for the classic plan the conversion the Lab itself uses
- *     (`EnergyLabStore.#classicEvaluation`): funded tasks in
+ *     (`toScheduleBlocks`): funded tasks in
  *     `calculateInterleavedOrder`, switch costs as rest gaps, one
  *     `evaluateSchedule` over the day window.
  *
@@ -44,6 +44,7 @@ import {
 	calculateTaskPlan,
 	getEffectiveDifficulty,
 	toEnergyTask,
+	toScheduleBlocks,
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
@@ -130,29 +131,6 @@ function hoursByIndex(tasks: Task[], blocks: ScheduleBlock[]): number[] {
 	);
 }
 
-/** The Lab's conversion of a classic plan: interleaved order, switches as rest. */
-function classicBlocks(
-	funded: { id: number; suggestedHours: number }[],
-	switchCost: number,
-): ScheduleBlock[] {
-	const blocks: ScheduleBlock[] = [];
-
-	funded.forEach((task, index) => {
-		if (index > 0 && switchCost > 0)
-			blocks.push({
-				taskId: null,
-				hours: switchCost,
-			});
-
-		blocks.push({
-			taskId: task.id,
-			hours: task.suggestedHours,
-		});
-	});
-
-	return blocks;
-}
-
 interface Scored {
 	classicUnderClassic: number;
 	energyUnderClassic: number;
@@ -192,7 +170,7 @@ function score(day: ProbeDay): Scored {
 	const funded = calculateInterleavedOrder(plan.suggestedTasks);
 
 	const classicEvaluation = evaluateSchedule(
-		classicBlocks(funded, DEFAULT_SWITCH_COST),
+		toScheduleBlocks(funded, DEFAULT_SWITCH_COST),
 		energyTasks,
 		day.budget,
 		DEFAULT_ENERGY_PARAMS,
