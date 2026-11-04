@@ -44,7 +44,7 @@ function dailyMetrics(overrides: Partial<DailyMetrics> = {}): DailyMetrics {
 			gainPercent: 0,
 		},
 		completionRate: 0,
-		yieldIndex: 0,
+		yieldIndex: null,
 		flowCoverage: {
 			reached: 0,
 			total: 0,

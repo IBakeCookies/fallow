@@ -183,7 +183,7 @@ export function buildMetrics(
 			group: 'worth',
 			label: m.metric_yield_index(),
 			description: m.metric_yield_index_desc(),
-			...gated(completedTasks > 0, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex)),
+			...gated(yieldIndex !== null, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex ?? 0)),
 		},
 		{
 			headline: true,

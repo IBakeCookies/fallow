@@ -89,7 +89,7 @@ export function completionChartPoints(input: CompletionChartInput): ChartPoint[]
 								day: 'numeric',
 							}),
 				value: summary ? summary.completionRate : null,
-				line: summary && summary.completedTasks > 0 ? summary.yieldIndex : null,
+				line: summary?.yieldIndex ?? null,
 				sub: summary
 					? m.ana_tasks_done_sub({
 							completed: summary.completedTasks,

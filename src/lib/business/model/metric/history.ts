@@ -45,8 +45,8 @@ export type DaySummary = {
 	completedTasks: number;
 	/** Priority-weighted completion rate (0–100), same as the dashboard metric. */
 	completionRate: number;
-	/** 0–100, and 0 on a day that completed nothing — read it with `completedTasks`. */
-	yieldIndex: number;
+	/** 0–100; `null` on a day that completed nothing. */
+	yieldIndex: number | null;
 	/**
 	 * `null` on a day that booked no hours. Hour-weighted over a switch-cost-free
 	 * solve, which is what history can afford — see `solveWithoutSwitchCost` for
@@ -365,8 +365,7 @@ export type WeeklyRollup = {
 /**
  * The year chart's two readings per 7-day block — completion rate and yield —
  * over `bucketByWeek`'s blocks. Yield averages only the days that completed
- * something: `yieldIndex` is 0 on a day that finished nothing, and averaging
- * those in reads as a bad week rather than an idle one.
+ * something.
  */
 export function weeklyRollups(
 	summaries: DaySummary[],
@@ -374,17 +373,15 @@ export function weeklyRollups(
 	rangeDays: number,
 ): WeeklyRollup[] {
 	return bucketByWeek(summaries, rangeStart, rangeDays).map((block) => {
-		const completingDays = block.rows.filter((day) => day.completedTasks > 0);
+		const yields = block.rows.map((day) => day.yieldIndex).filter((y) => y !== null);
 
 		return {
 			start: block.start,
 			isMonthStart: block.isMonthStart,
 			average: block.rows.length > 0 ? averageCompletionRate(block.rows) : null,
 			yieldAverage:
-				completingDays.length > 0
-					? Math.round(
-							completingDays.reduce((sum, day) => sum + day.yieldIndex, 0) / completingDays.length,
-						)
+				yields.length > 0
+					? Math.round(yields.reduce((sum, y) => sum + y, 0) / yields.length)
 					: null,
 			dayCount: block.rows.length,
 		};
