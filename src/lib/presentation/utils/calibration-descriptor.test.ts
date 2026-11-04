@@ -20,6 +20,13 @@ const flatTrend: CalibrationSnapshot['trend'] = {
 	stoppingValue: [0.44],
 };
 
+/** Nothing deferred — the rows' own business is the snapshot; the deferred ☕/🪫
+ *  counts are the observation store's live ones, handed in beside it. */
+const NONE_PENDING = {
+	rest: 0,
+	drain: 0,
+};
+
 /** Every fit rejected, every value distinct from its default — so a row printing
  *  the wrong one of the two cannot pass by coincidence. */
 const unfitted: CalibrationSnapshot = {
@@ -33,8 +40,6 @@ const unfitted: CalibrationSnapshot = {
 	},
 	energy: {
 		params: defaults,
-		pendingRestCount: 0,
-		pendingDrainCount: 0,
 		recovery: {
 			fitted: false,
 			usedCount: 0,
@@ -70,11 +75,11 @@ const unfitted: CalibrationSnapshot = {
 
 describe('calibrationRows', () => {
 	it('has no rows before the snapshot has loaded', () => {
-		expect(calibrationRows(null, 'en-US')).toEqual([]);
+		expect(calibrationRows(null, 'en-US', NONE_PENDING)).toEqual([]);
 	});
 
 	it('reports every calibrated parameter, in fit order', () => {
-		expect(calibrationRows(unfitted, 'en-US').map((row) => row.label)).toEqual([
+		expect(calibrationRows(unfitted, 'en-US', NONE_PENDING).map((row) => row.label)).toEqual([
 			'Time to flow · typical task',
 			'Recovery rate',
 			'Cognitive drain rate',
@@ -86,7 +91,7 @@ describe('calibrationRows', () => {
 	// An unfitted row must not wear ≈ or ±: that is the whole signal that the
 	// number on screen is the default rather than the reader's own measurement.
 	it('prints a rejected fit as a bare number with no ≈ or ±', () => {
-		const rows = calibrationRows(unfitted, 'en-US');
+		const rows = calibrationRows(unfitted, 'en-US', NONE_PENDING);
 
 		expect(rows[0].value).toBe('30 min');
 		expect(rows[1].value).toBe('0.11 /h');
@@ -132,6 +137,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[0].value).toBe('≈ 24 min');
@@ -155,6 +161,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[4].value).toBe('≈ 0.60 ± 0.00 out/h');
@@ -163,7 +170,7 @@ describe('calibrationRows', () => {
 	// Two cells, not one sentence: the default is what the fitted cell beside it is
 	// compared against, and the evidence is why the reader should trust the fit.
 	it('carries each row its default and its evidence separately', () => {
-		const rows = calibrationRows(unfitted, 'en-US');
+		const rows = calibrationRows(unfitted, 'en-US', NONE_PENDING);
 
 		expect(rows[0].defaultValue).toBe('45 min');
 		expect(rows[0].evidence).toBe('0.0 ⚡ logs, recency-weighted');
@@ -194,6 +201,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[0].evidence).toBe(
@@ -219,6 +227,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[0].evidence).toBe(
@@ -242,11 +251,12 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(young[0].evidence).toBe('3.5 ⚡ logs, recency-weighted');
 
-		const fresh = calibrationRows(unfitted, 'en-US');
+		const fresh = calibrationRows(unfitted, 'en-US', NONE_PENDING);
 
 		expect(fresh[0].evidence).toBe('0.0 ⚡ logs, recency-weighted');
 	});
@@ -276,6 +286,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[1].evidence).toBe(
@@ -306,6 +317,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[2].evidence).toBe(
@@ -341,6 +353,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[3].evidence).toBe(
@@ -365,6 +378,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[0].evidence).toBe('3.5 ⚡ logs, recency-weighted');
@@ -388,6 +402,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[0].evidence).toBe(
@@ -402,16 +417,10 @@ describe('calibrationRows', () => {
 	// were silent about it: a ☕ logged this morning left the Recovery row's count
 	// unmoved, which reads as a log that was dropped.
 	it('names a ☕ logged today on the recovery row', () => {
-		const rows = calibrationRows(
-			{
-				...unfitted,
-				energy: {
-					...unfitted.energy,
-					pendingRestCount: 1,
-				},
-			},
-			'en-US',
-		);
+		const rows = calibrationRows(unfitted, 'en-US', {
+			rest: 1,
+			drain: 0,
+		});
 
 		expect(rows[1].evidence).toBe('0 ratings · 1 ☕ logged today, counted from tomorrow');
 	});
@@ -420,16 +429,10 @@ describe('calibrationRows', () => {
 	// count itself is DAYS, not ratings: each α fit reads one row per day
 	// (MATH.md §8.7), while the recovery row above still counts ☕ pairs.
 	it('names the 🪫 logged today on both drain rows', () => {
-		const rows = calibrationRows(
-			{
-				...unfitted,
-				energy: {
-					...unfitted.energy,
-					pendingDrainCount: 2,
-				},
-			},
-			'en-US',
-		);
+		const rows = calibrationRows(unfitted, 'en-US', {
+			rest: 0,
+			drain: 2,
+		});
 
 		expect(rows[2].evidence).toBe('0 days · 2 🪫 logged today, counted from tomorrow');
 
@@ -448,6 +451,7 @@ describe('calibrationRows', () => {
 				},
 			},
 			'en-US',
+			NONE_PENDING,
 		);
 
 		expect(rows[4].evidence).toBe('0 days · today counts from tomorrow');
@@ -456,7 +460,7 @@ describe('calibrationRows', () => {
 	// A pin: with nothing deferred the four evidence cells are the strings the card
 	// already prints, so the clause cannot leak onto a row that has nothing to say.
 	it('leaves a row with nothing deferred printing the evidence it prints today', () => {
-		const rows = calibrationRows(unfitted, 'en-US');
+		const rows = calibrationRows(unfitted, 'en-US', NONE_PENDING);
 
 		expect(rows[1].evidence).toBe('0 ratings');
 		expect(rows[2].evidence).toBe('0 days');
@@ -465,13 +469,13 @@ describe('calibrationRows', () => {
 	});
 
 	it('renders the numbers in the reader locale', () => {
-		expect(calibrationRows(unfitted, 'de-DE')[1].value).toBe('0,11 /h');
+		expect(calibrationRows(unfitted, 'de-DE', NONE_PENDING)[1].value).toBe('0,11 /h');
 	});
 
 	// The sparkline of each fit over the recorded days.
 	describe('trend', () => {
 		it('offers no line until there are two recorded days to join', () => {
-			expect(calibrationRows(unfitted, 'en-US').map((row) => row.trend)).toEqual([
+			expect(calibrationRows(unfitted, 'en-US', NONE_PENDING).map((row) => row.trend)).toEqual([
 				null,
 				null,
 				null,
@@ -493,6 +497,7 @@ describe('calibrationRows', () => {
 					},
 				},
 				'en-US',
+				NONE_PENDING,
 			);
 
 			expect(rows[0].trend?.values).toEqual([0.6, 0.5]);
@@ -518,6 +523,7 @@ describe('calibrationRows', () => {
 					},
 				},
 				'en-US',
+				NONE_PENDING,
 			);
 
 			expect(rows[0].trend?.ariaLabel).toBe(

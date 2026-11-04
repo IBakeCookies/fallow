@@ -467,53 +467,6 @@ describe('readModelReport', () => {
 		}
 	});
 
-	/* The other three fits defer today's rows on the same rule the ϕ fit does, so
-	   the report names them too — a ☕ logged this morning otherwise leaves the
-	   Recovery row's count unmoved, which reads as a log that was dropped. */
-	it('defers a ☕ logged today, and counts it from tomorrow', async () => {
-		await $createRestObservation({
-			date: '2027-02-01',
-			hours: 0.5,
-			mindBefore: 8,
-			mindAfter: 5,
-			bodyBefore: 6,
-			bodyAfter: 4,
-		});
-
-		await $createRestObservation({
-			date: '2027-02-02',
-			hours: 0.5,
-			mindBefore: 7,
-			mindAfter: 4,
-			bodyBefore: 5,
-			bodyAfter: 3,
-		});
-
-		expect((await readModelReport('2027-02-02', 30)).calibration.energy.pendingRestCount).toBe(1);
-		expect((await readModelReport('2027-02-03', 30)).calibration.energy.pendingRestCount).toBe(0);
-	});
-
-	// Both α fits read the same 🪫 rows, so there is one count for the two rows.
-	it('defers the 🪫 logged today', async () => {
-		const drain = (date: string, taskId: number) =>
-			$createDrainObservation({
-				date,
-				taskId,
-				taskTitle: `task ${taskId}`,
-				hours: 2,
-				cognitiveDemand: 0.8,
-				physicalDemand: 0.3,
-				mindDrain: 8,
-				bodyDrain: 4,
-			});
-
-		await drain('2027-02-04', 1);
-		await drain('2027-02-05', 1);
-		await drain('2027-02-05', 2);
-
-		expect((await readModelReport('2027-02-05', 30)).calibration.energy.pendingDrainCount).toBe(2);
-	});
-
 	// λ₀ reads whole DAYS, so the promise is only honest if today would actually
 	// pass the finished-day join — a stored session with tasks and hours.
 	it('promises today to the λ₀ fit once the day would qualify', async () => {

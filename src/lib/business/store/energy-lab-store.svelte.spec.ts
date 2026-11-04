@@ -865,35 +865,6 @@ describe('EnergyLabStore', () => {
 		expect(store.recoveryFit.fitted).toBe(false);
 	});
 
-	it('counts the deferred drain and rest rows rather than dropping them', async () => {
-		const store = await setup();
-
-		mockObservations.drainObservations = [
-			drainRecord({
-				date: mockSession.today,
-			}),
-			drainRecord({
-				date: mockSession.today,
-				hours: 2,
-				mindDrain: 8,
-			}),
-			drainRecord({
-				date: '2026-07-19',
-			}),
-		];
-
-		mockObservations.restObservations = [
-			restRecord({
-				date: mockSession.today,
-			}),
-		];
-
-		flushSync();
-
-		expect(store.pendingDrainLogCount).toBe(2);
-		expect(store.pendingRestLogCount).toBe(1);
-	});
-
 	// The Lab is a today-only instrument, so its window closes at today even while
 	// the session still holds the day the user arrived from (`/?date=`).
 	it('fits up to today while the session still holds an earlier day', async () => {
@@ -906,28 +877,6 @@ describe('EnergyLabStore', () => {
 
 		expect(store.cognitiveDrainFit.fitted).toBe(true);
 		expect(store.recoveryFit.fitted).toBe(true);
-	});
-
-	it('defers from today while the session holds a later day', async () => {
-		const store = await setup();
-		mockSession.selectedDate = '2026-07-21';
-
-		mockObservations.drainObservations = [
-			drainRecord({
-				date: mockSession.today,
-			}),
-		];
-
-		mockObservations.restObservations = [
-			restRecord({
-				date: mockSession.today,
-			}),
-		];
-
-		flushSync();
-
-		expect(store.pendingDrainLogCount).toBe(1);
-		expect(store.pendingRestLogCount).toBe(1);
 	});
 
 	it('debounces the param autosave into a single write of the last value', async () => {
