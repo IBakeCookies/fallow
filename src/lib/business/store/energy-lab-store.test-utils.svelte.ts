@@ -10,6 +10,7 @@ import type { Task } from '$lib/business/type';
 import type { TitleRating } from '$lib/business/model/title-memory';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
+import type { StopObservation } from '$lib/business/model/zenith-energy';
 import { addDays } from '$lib/business/utils/date';
 import {
 	DEFAULT_CAPACITY_POOLS,
@@ -117,4 +118,10 @@ export const restRecord = (over: Partial<RestObservationRecord> = {}): RestObser
 	bodyAfter: 1,
 	createdAt: 0,
 	...over,
+});
+
+export const stopObservation = (windowHours: number): StopObservation => ({
+	tasks: [],
+	windowHours,
+	workedHours: [],
 });
