@@ -3017,31 +3017,8 @@ describe('SessionStore demo mode', () => {
 		expect(store.tasks).toHaveLength(6);
 	});
 
-	/* An edit to their own day is saved even when they open the example day before the
-	   auto-save has written it.
-
-	   Tests: src/lib/business/store/session-store.svelte.spec.ts — "saves an edit still
-	     waiting on the auto-save when the example day opens"
-	   Pins: "never writes a session", "does not save the fixture on the way out of the
-	     demo", "flushes the pending save before loading a newly selected date"
-	   Out of scope:
-	   - A12, A13 and M120 (ROADMAP).
-	   - `#boot`'s seed: it runs before any day has loaded, so nothing is pending.
-	   Read before building:
-	   - src/lib/business/store/session-store.svelte.ts — `#seedDemoDay`, which sets
-	     `#isShowingDemo` with a write still pending, and `#persistSession`, which refuses
-	     under that flag. `#loadSession` flushes before it moves the day; the seed does not.
-	   - src/lib/business/store/debounced-write.svelte.ts — `flush` calls the write
-	     synchronously, and `#persistSession` reads the flag before its first await.
-	   - src/lib/business/AGENTS.md — "`SessionStore` has a second day source".
-	   - ROADMAP.md — "Findings from the 2026-11-04 architecture review": S11.
-	   Decisions:
-	   - Flush inside `#seedDemoDay`, before the flag flips, not in the day `$effect`:
-	     one site covers every seed, the shape `#loadSession` already has.
-	   - The write's `.then` marks `#loadedHadSession` on the fixture's day, since the seed
-	     stamps the same date. No guard: the auto-save returns on the flag first, and
-	     `#loadSession` resets the field on leaving.
-	   Roadmap: S11 */
+	// An edit to their own day is saved even when they open the example day before the
+	// auto-save has written it.
 	it('saves an edit still waiting on the auto-save when the example day opens', async () => {
 		mockPage.url = new URL('http://localhost/');
 

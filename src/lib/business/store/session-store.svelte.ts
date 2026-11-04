@@ -509,6 +509,8 @@ export class SessionStore {
 	 * instead (`#persistSession`).
 	 */
 	#seedDemoDay(titles: DemoTaskTitles) {
+		// Before the flag: a pending edit is the visitor's own day, and `#persistSession` refuses under it.
+		this.#autoSave.flush();
 		this.#tasks = buildDemoTasks(titles, this.#selectedDate);
 		this.#availableHours = DEMO_AVAILABLE_HOURS;
 		this.#switchCost = DEMO_SWITCH_COST;
