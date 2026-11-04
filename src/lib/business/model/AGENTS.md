@@ -245,7 +245,7 @@ its allocation code, so the main page is unaffected by changes here.
   Parameters heading, because the order above is the math — three per-card
   buttons let the user apply α before r, which adopts an α fitted against the
   old recovery and leaves it stale with only a re-armed button as the tell.
-  `EnergyLabStore.applyFits()` is the only public way in; the per-fit setters
+  `EnergyPlanStore.applyFits()` is the only public way in; the per-fit setters
   are private so that order cannot be reached.
 
 ## History prefills (`budget-memory.ts`, `title-memory.ts`, `tags.ts`)

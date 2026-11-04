@@ -1367,12 +1367,12 @@ The read-only review of the branch that closed M110 and M112 caught a Lab
 reached from `/?date=` taking its order snapshot from the day still in memory.
 That one is fixed on the branch, pinned by "sorts by the viewed day's plan, not
 the last day's still in memory" in
-[energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
+[energy-plan-store.svelte.spec.ts](src/lib/business/store/energy-plan-store.svelte.spec.ts).
 The **M** series continues.
 
 - ~~**M115 — an open Lab keeps the old day's order across midnight.**~~ Fixed
   2026-10-04,
-  [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
+  [energy-plan-store.svelte.spec.ts](src/lib/business/store/energy-plan-store.svelte.spec.ts).
 
 ## Findings from the 2026-10-03 citation sweep
 
@@ -1411,7 +1411,7 @@ same snapshot. The **M** series continues.
 
 - ~~**M119 — a Lab reached from the example day lists the real day in the
   store's order.**~~ Fixed 2026-11-04,
-  [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
+  [energy-plan-store.svelte.spec.ts](src/lib/business/store/energy-plan-store.svelte.spec.ts).
 
 ## Findings from the 2026-11-04 architecture review
 
@@ -1437,17 +1437,9 @@ The deepenings, strongest first.
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - ~~**A12 — the deferred-🪫 count lives on the Lab.**~~ Fixed 2026-11-04 with
   M120, [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).
-- **A13 — one `/energy` visit is held by a layout-scoped store — raised
-  2026-11-04.** Ten `$state` fields describe a single visit (the order snapshot,
-  the draft, the budget curve), so the page arms and cancels the snapshot by
-  protocol (`resnapshotOrder()`'s cancel) and any plan member read off `/energy`
-  solves (M110); the arming was rewritten in 8f33169, 7c84c52 and 3e67bbb.
-  Direction: params, stop observations and the stop advisor stay in the layout;
-  the Lab's fold, which does no I/O, moves to `/energy`, per business/AGENTS.md
-  "Context is the creation rule"'s first question. The member count is a wash
-  (34 → about 7 + 27); the gain is the protocol, and `/` and `/analytics`
-  seeing seven members. Cost: `budgetCurve` and `draftImpact` stop surviving a
-  round trip off `/energy`. After A12.
+- ~~**A13 — one `/energy` visit is held by a layout-scoped store.**~~ Fixed
+  2026-11-04,
+  [energy-plan-store.svelte.spec.ts](src/lib/business/store/energy-plan-store.svelte.spec.ts).
 
 The defects.
 

@@ -7,7 +7,6 @@ import {
 	mockObservations,
 	mockSession,
 	mockClock,
-	stopObservation,
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/session-history';
@@ -69,6 +68,12 @@ const updateSettingMock = vi.mocked(settingsRepository.$updateSetting);
 const readStopObservationsMock = vi.mocked(sessionHistory.readStopObservations);
 const optimizeScheduleMock = vi.mocked(optimizeSchedule);
 const MS_PER_HOUR = 3_600_000;
+
+const stopObservation = (windowHours: number): StopObservation => ({
+	tasks: [],
+	windowHours,
+	workedHours: [],
+});
 
 /** Mount the Lab and settle the load. Loading never writes params back. */
 async function setup(): Promise<EnergyLabStore> {

@@ -1,71 +1,7 @@
 /* A visit to the Energy Lab is held by a store that lives as long as the page: the
    plan, the list's order, the classic comparison, the budget curve, the add-task
    draft and the three fits. The (app) layout keeps what outlives a visit: the
-   params, the stop observations and the stop advice `/`'s session clock reads.
-
-   Tests:
-   - src/lib/business/store/energy-plan-store.svelte.spec.ts (this file), hosted by
-     energy-plan-store.test-harness.svelte. Its plan, order, fit, curve and draft
-     tests moved here from the Lab spec, re-pointed at the new store; the three that
-     drove `resnapshotOrder()` now mount and unmount a visit instead.
-   - src/lib/business/store/energy-lab-store.svelte.spec.ts: what stays on the
-     layout store. `stopObservation` moved into energy-lab-store.test-utils.svelte.ts
-     for both specs.
-   Red: this whole file, because the module is absent. In the Lab spec, "drops a
-   stale stop-observation load that resolves after a newer one" and "re-reads the
-   stop observations when a past day is written", because `stopObservations` is
-   absent.
-   Pins: every other test in the Lab spec, among them "solves nothing while `/`
-   moves the window and the day".
-   Out of scope:
-   - M124 (`/energy`'s no-op `oncarry`): same page, its own finding.
-   - Renaming `EnergyLabStore`. It keeps its name and its place in the (app) layout.
-   - Keeping the curve or the draft reading across a round trip off `/energy`.
-     ROADMAP A13 accepts losing both.
-   - Anything a fit, the plan or the advisor computes. MATH.md is untouched.
-   Read before building:
-   - src/lib/business/store/energy-lab-store.svelte.ts: the class being split.
-   - src/lib/business/store/daily-plan-store.svelte.ts: the route-scoped fold over
-     layout stores this mirrors, created by `setDailyPlanStore` in `/`'s script.
-   - src/routes/(app)/energy/+page.svelte: reads both stores after the split; the
-     `onMount` call to `resnapshotOrder()` and its returned cancel go.
-   - src/routes/(app)/+page.svelte: reads only `isStopAdviceReady` and `stopAdvice`,
-     both of which stay.
-   - src/lib/business/AGENTS.md: "Every store reaches a route through its
-     `setXStore()`" (the count and the list), "Context is the creation rule…" (the
-     route-script list, and the `EnergyLabStore` bullet, which cites two pins this
-     plan deletes), the plan-advice table's `computeDraftImpact` row, "`scheduledTasks`
-     carries the task's true effort", and the `#curveFingerprint` mention. The file
-     is budgeted by `scripts/brief-size.mjs`.
-   - src/lib/presentation/AGENTS.md: "The Lab's task list reads in schedule order,
-     snapshotted per visit" names `lab.resnapshotOrder()`; the task-form section
-     names `EnergyLabStore.draftImpact`.
-   - src/lib/business/model/AGENTS.md: names `EnergyLabStore.applyFits()` as the
-     only way in.
-   - Comments that name `EnergyLabStore` for a member that moves: `toScheduleBlocks`'
-     doc in calculation.ts, task-form-energy-preview.svelte's header.
-   Decisions:
-   - `EnergyLabStore` keeps `params`, `setParam`, `resetParams`, `isLoaded`,
-     `stopObservations`, `isStopAdviceReady` and `stopAdvice`, with the params load,
-     the autosave, the stop-observation re-read and the `'energyLab'` registration.
-     `stopObservations` replaces `stopObservationCount`: the moved λ₀ fit reads the
-     array, and the λ₀ card prints its length.
-   - `EnergyPlanStore` (energy-plan-store.svelte.ts) takes `(session, observations,
-     lab)` and holds every other member. `setEnergyPlanStore` / `getEnergyPlanStore`
-     are called from `/energy`'s instance script; the constructor does no I/O.
-   - The fits move with the fold: they do no I/O, only `/energy` reads them, and
-     `applyFits` keeps the r → α → λ₀ order inside one class, writing through
-     `lab.setParam`. Rejected: leaving them on the layout store, which `/` would
-     then still see, for no second reader.
-   - The order snapshot is the new store's own `$effect`, armed by construction, so
-     `resnapshotOrder()` and `#isPageOpen` go. `#snapshotDate` and the `loadedDate
-     !== selectedDate` guard stay: arriving from `/?date=`, from the example day and
-     across midnight still need them.
-   - The `#curveFingerprint` comment's paragraph on the store being layout-scoped is
-     false after the move; delete it. The date field stays, for midnight.
-   - Planned, not `/refactor`: the curve and draft readings stop surviving a round
-     trip, and the order tests change shape.
-   Roadmap: A13 */
+   params, the stop observations and the stop advice `/`'s session clock reads. */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -78,7 +14,6 @@ import {
 	mockObservations,
 	mockSession,
 	restRecord,
-	stopObservation,
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/session-history';
@@ -652,9 +587,33 @@ describe('EnergyPlanStore', () => {
 		];
 
 		mockObservations.restObservations = [restRecord()];
-		readStopObservationsMock.mockResolvedValue([stopObservation(8), stopObservation(6)]);
+
+		// A finished day with a session on it, so λ₀ has a stop to read (MATH.md §8.10).
+		readStopObservationsMock.mockResolvedValue([
+			{
+				tasks: [
+					toEnergyTask({
+						id: 1,
+						title: 'deep work',
+						physicalDifficulty: 2,
+						mentalDifficulty: 8,
+						enjoyment: 5,
+						createdAt: '2026-07-19',
+						completed: false,
+					}),
+				],
+				windowHours: 8,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
+			},
+		]);
+
 		flushSync();
-		await vi.waitFor(() => expect(lab.stopObservations).toHaveLength(2));
+		await vi.waitFor(() => expect(store.stoppingFit.fitted).toBe(true));
 
 		const round2 = (x: number) => Math.round(x * 100) / 100;
 
@@ -664,11 +623,8 @@ describe('EnergyPlanStore', () => {
 		expect(lab.params.recoveryRate).toBe(round2(store.recoveryFit.rate));
 		expect(lab.params.alphaCog).toBe(round2(store.cognitiveDrainFit.alpha));
 		expect(lab.params.alphaPhys).toBe(round2(store.physicalDrainFit.alpha));
+		expect(lab.params.freeTimeValue).toBe(round2(store.stoppingFit.value));
 		expect(store.fitsApplied).toBe(true);
-
-		if (store.stoppingFit.fitted) {
-			expect(lab.params.freeTimeValue).toBe(round2(store.stoppingFit.value));
-		}
 	});
 
 	// The bug the single button exists to kill: α is only identifiable CONDITIONED

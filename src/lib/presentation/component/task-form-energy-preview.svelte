@@ -1,6 +1,6 @@
 <script lang="ts">
 	/* The Lab's add-task form second column: what the task being typed would do to
-	   the OPTIMIZED day. `EnergyLabStore` solves it on a button press (R2) — this
+	   the OPTIMIZED day. `EnergyPlanStore` solves it on a button press (R2) — this
 	   only labels it.
 
 	   A sibling of `task-form-preview.svelte`, not a mode of it: a different plan

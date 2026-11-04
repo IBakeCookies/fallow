@@ -31,6 +31,7 @@
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import { setEnergyPlanStore } from '$lib/business/store/energy-plan-store.svelte';
 	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
 	import { suggestTargetMinutes } from '$lib/business/utils/session-timer';
 
@@ -44,25 +45,26 @@
 	const observations = getEnergyObservationStore();
 
 	const lab = getEnergyLabStore();
+	const energyPlan = setEnergyPlanStore(session, observations, lab);
 
 	const timerStore = getSessionTimerStore();
 
-	const tasks = $derived(lab.scheduledTasks);
+	const tasks = $derived(energyPlan.scheduledTasks);
 	const hasTasks = $derived(tasks.length > 0);
 	const params = $derived(lab.params);
-	const plan = $derived(lab.plan);
-	const trajectory = $derived(lab.trajectory);
+	const plan = $derived(energyPlan.plan);
+	const trajectory = $derived(energyPlan.trajectory);
 	const windowHours = $derived(session.availableHours);
-	const trailingFreeHours = $derived(lab.trailingFreeHours);
-	const valueVsClassic = $derived(lab.valueVsClassic);
-	const cogDrainFit = $derived(lab.cognitiveDrainFit);
-	const physDrainFit = $derived(lab.physicalDrainFit);
-	const recoveryFit = $derived(lab.recoveryFit);
+	const trailingFreeHours = $derived(energyPlan.trailingFreeHours);
+	const valueVsClassic = $derived(energyPlan.valueVsClassic);
+	const cogDrainFit = $derived(energyPlan.cognitiveDrainFit);
+	const physDrainFit = $derived(energyPlan.physicalDrainFit);
+	const recoveryFit = $derived(energyPlan.recoveryFit);
 	const pendingDrainLogs = $derived(observations.pendingDrainLogCount);
 	const pendingRestLogs = $derived(observations.pendingRestLogCount);
-	const stopFit = $derived(lab.stoppingFit);
+	const stopFit = $derived(energyPlan.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
-	const budgetCurve = $derived(lab.budgetCurve);
+	const budgetCurve = $derived(energyPlan.budgetCurve);
 	// The lookup always resolves; '' only satisfies the type where the verdict carries no task.
 	const stopTaskTitle = $derived(
 		stopAdvice !== null && stopAdvice.verdict !== 'window-full'
@@ -93,9 +95,6 @@
 	}
 
 	onMount(() => {
-		// Why: presentation/AGENTS.md, "The Lab's task list reads in schedule order, snapshotted per visit"
-		const cancelResnapshot = lab.resnapshotOrder();
-
 		try {
 			const savedView = localStorage.getItem(VIEW_KEY);
 
@@ -103,8 +102,6 @@
 		} catch (e) {
 			logError('Failed to load energy lab view preference', e);
 		}
-
-		return cancelResnapshot;
 	});
 
 	// ---------- Drain calibration (α fit from end-of-session ratings) ----------
@@ -190,7 +187,7 @@
 
 	// §8.10: `valueStd` prices SCATTER alone, so this row says spread, not a ±.
 	const stopReading = $derived(
-		lab.stopObservationCount === 0
+		lab.stopObservations.length === 0
 			? undefined
 			: stopFit.fitted
 				? m.energy_stop_fit_value({
@@ -202,11 +199,11 @@
 	);
 
 	// One hue per task, shared by the timeline, the schedule list and the rows.
-	const colors = $derived(seriesColors(lab.energyTasks.map((t) => t.id)));
+	const colors = $derived(seriesColors(energyPlan.energyTasks.map((t) => t.id)));
 
 	// Null with no plan: "no hours" against every task would be a claim the optimizer never made.
 	const plannedFor = (taskId: number) =>
-		plan.evaluation.blocks.length === 0 ? null : (lab.allocatedHoursByTask.get(taskId) ?? 0);
+		plan.evaluation.blocks.length === 0 ? null : (energyPlan.allocatedHoursByTask.get(taskId) ?? 0);
 
 	function focusDayWindow() {
 		document.getElementById('window-hours')?.focus();
@@ -262,7 +259,7 @@
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}
 		withMustDoToday={false}
-		ondraftchange={(d) => (lab.previewDraft = d)}
+		ondraftchange={(d) => (energyPlan.previewDraft = d)}
 		preview={draftPrice}
 		action={priceButton}
 	/>
@@ -270,9 +267,9 @@
 
 {#snippet draftPrice()}
 	<TaskFormEnergyPreview
-		impact={lab.draftImpact}
-		isBusy={lab.isDraftBusy}
-		hasDraft={lab.previewDraft !== null}
+		impact={energyPlan.draftImpact}
+		isBusy={energyPlan.isDraftBusy}
+		hasDraft={energyPlan.previewDraft !== null}
 		hasWindow={windowHours > 0}
 	/>
 {/snippet}
@@ -284,8 +281,8 @@
 		<Button
 			variant="outline"
 			type="button"
-			disabled={lab.previewDraft === null || lab.isDraftBusy}
-			onclick={() => lab.computeDraftImpact()}
+			disabled={energyPlan.previewDraft === null || energyPlan.isDraftBusy}
+			onclick={() => energyPlan.computeDraftImpact()}
 		>
 			{m.form_impact_price()}
 		</Button>
@@ -415,7 +412,7 @@
 									blocks={plan.evaluation.blocks}
 									{windowHours}
 									{trailingFreeHours}
-									plannedHours={lab.plannedHours}
+									plannedHours={energyPlan.plannedHours}
 									{colors}
 									locale={getDateLocale()}
 									{completedTaskIds}
@@ -466,17 +463,17 @@
 									<!-- One button for all four fits because their ORDER is the math (MATH.md
 						§8.7/§8.9/§8.10): separate buttons let the user apply them in an order
 						that leaves a parameter stale. -->
-									{#if lab.hasFit}
+									{#if energyPlan.hasFit}
 										<button
 											type="button"
-											class="text-xs transition {lab.fitsApplied
+											class="text-xs transition {energyPlan.fitsApplied
 												? 'cursor-default text-ty-silent'
 												: 'text-brand hover:text-brand-strong'}"
-											disabled={lab.fitsApplied}
+											disabled={energyPlan.fitsApplied}
 											title={m.energy_apply_fits_title()}
-											onclick={() => lab.applyFits()}
+											onclick={() => energyPlan.applyFits()}
 										>
-											{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
+											{energyPlan.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
 										</button>
 									{/if}
 
@@ -653,7 +650,7 @@
 							title={m.energy_stop_calibration()}
 							hint={m.energy_stop_calibration_hint()}
 						>
-							{#if lab.stopObservationCount === 0}
+							{#if lab.stopObservations.length === 0}
 								<p class="mt-text-sm text-xs text-ty-silent">
 									{m.energy_stop_calibration_empty()}
 								</p>
@@ -691,10 +688,10 @@
 
 							<!-- λ₀ has no log store of its own to count or reset, so the days it read are
 						     all this card has left once the fit reads on its parameter's row. -->
-							{#if lab.stopObservationCount > 0}
+							{#if lab.stopObservations.length > 0}
 								<p class="mt-text-sm border-t border-line-soft pt-box-sm text-xs text-ty-silent">
 									{m.energy_stop_observation_count({
-										count: lab.stopObservationCount,
+										count: lab.stopObservations.length,
 									})}
 								</p>
 							{/if}
@@ -710,12 +707,12 @@
 			{#if hasTasks}
 				<BudgetCurveCard
 					curve={budgetCurve}
-					isBusy={lab.isCurveBusy}
-					isStale={lab.isCurveStale}
-					hasError={lab.hasCurveError}
+					isBusy={energyPlan.isCurveBusy}
+					isStale={energyPlan.isCurveStale}
+					hasError={energyPlan.hasCurveError}
 					currentBudget={windowHours}
 					locale={getDateLocale()}
-					oncheck={() => lab.computeBudgetCurve()}
+					oncheck={() => energyPlan.computeBudgetCurve()}
 					onapply={(hours) => (session.availableHours = hours)}
 				/>
 			{/if}

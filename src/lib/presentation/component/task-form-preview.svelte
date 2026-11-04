@@ -46,8 +46,7 @@
 
 	// The dialog mounts this panel fresh on every open, so ranking here is what
 	// keeps the reading from outliving the day it was solved against. `onMount`
-	// and not an `$effect`: fire-and-forget wiring, the shape R2 leaves open
-	// (`/energy`'s `resnapshotOrder`).
+	// and not an `$effect`: fire-and-forget wiring, the shape R2 leaves open.
 	onMount(() => {
 		if (hasNextTaskRoom) onnexttasks();
 	});
