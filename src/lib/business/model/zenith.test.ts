@@ -1582,7 +1582,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 		/* A negative switch cost, which can be reached mid-typing because the field
 		   clamps on blur, plans, scores and draws as no switching. The plan never
-		   books more than the day declares. Nothing shipped moves at any cost ≥ 0. */
+		   books more than the day declares. */
 		// Budget-bound on a 2 h day: billed as typed, −0.5 h credits the budget an
 		// hour and the plan books 3 h.
 		const LONG_FLOW_TASKS: PooledTaskInput[] = [

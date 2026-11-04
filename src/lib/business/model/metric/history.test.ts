@@ -594,8 +594,8 @@ describe('weeklyRollups', () => {
 		expect(weeks.map((week) => week.isMonthStart)).toEqual([true, true, false]);
 	});
 
-	// The same gate the daily line holds: a day that finished nothing has no yield,
-	// and averaging it in as 0 reads as a bad week, not an idle one.
+	// A day that finished nothing has no yield; averaged in as 0 it would read as a
+	// bad week, not an idle one.
 	it('averages yield over the days that completed something', () => {
 		const weeks = weeklyRollups(
 			[day('2026-07-02', 80, 1, 90), day('2026-07-03', 0, 0)],
