@@ -953,8 +953,7 @@ describe('calculateYieldIndex', () => {
 		});
 
 	/* Yield Index decides its own absence: a day that completed nothing has no reading
-	   (`null`), as `calculateRewardDensity` and `calculateDailyQuadrant` already answer.
-	   It no longer reads 0, which every reader then had to undo. Nothing shipped moves. */
+	   (`null`), as `calculateRewardDensity` and `calculateDailyQuadrant` answer. */
 	it('reads no yield with no completions', () => {
 		expect(calculateYieldIndex([t(1, 9, false), t(2, 6, false)])).toBeNull();
 	});
