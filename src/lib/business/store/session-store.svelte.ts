@@ -231,12 +231,6 @@ export class SessionStore {
 		return this.#demoTitles !== null;
 	}
 
-	/** Whether the fixture is on screen, which outlives `isDemo` until the visitor's
-	 *  own day loads — the flag a write takes (business/AGENTS.md). */
-	get isShowingDemo() {
-		return this.#isShowingDemo;
-	}
-
 	// The viewed day is the loaded one: the guard on every edit and on the
 	// auto-save. Loads are async, so mid-navigation the in-memory day still belongs
 	// to the previous date, and writing it under the incoming one would overwrite it.
@@ -787,10 +781,11 @@ export class SessionStore {
 	get selectedDate() {
 		return this.#selectedDate;
 	}
-	/** Which day the in-memory values belong to — lags `selectedDate` while a day
-	 *  loads, so it is the signal for "these hours describe this day". */
+	/** Which stored day the in-memory values belong to — lags `selectedDate` while a
+	 *  day loads, and null while the example day shows, so it is the signal for
+	 *  "these hours describe this day". */
 	get loadedDate() {
-		return this.#loadedDate;
+		return this.#isShowingDemo ? null : this.#loadedDate;
 	}
 	/** The day a defer sends to — `readDeferDestination`'s subject, and what the
 	 *  reading's holder keys its freshness on. */
@@ -967,18 +962,22 @@ export class SessionStore {
 		if (index === -1) return undefined;
 
 		const task = this.#tasks[index];
-		const date = this.#selectedDate;
+		const loadedDate = this.loadedDate;
 
 		this.#tasks = this.#tasks.filter((t) => t.id !== id);
 
 		return {
 			task,
 			undo: () => {
-				// Same guard as toggleTask, and the undo is what makes it reachable
-				// without a race: a toast outlives a click on another day, and putting
-				// the task back into the tasks on screen would autosave it into that
-				// day instead — or into the day whose load has not landed yet.
-				if (this.#loadedDate !== this.#selectedDate || this.#selectedDate !== date) return;
+				// A toast outlives a navigation: onto another day or the day whose load has
+				// not landed (autosaved there), into or out of the example day, or onto a
+				// reseeded one, whose ids repeat (shown twice).
+				if (
+					this.#loadedDate !== this.#selectedDate ||
+					this.loadedDate !== loadedDate ||
+					this.#tasks.some((t) => t.id === task.id)
+				)
+					return;
 
 				// Its original id: `nextTaskId` is monotonic, so a task added in between
 				// cannot have taken it, and the drain log that outlives a task

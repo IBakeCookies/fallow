@@ -2995,6 +2995,28 @@ describe('SessionStore demo mode', () => {
 		expect(readHistoryPrefillsMock).toHaveBeenCalledTimes(1);
 	});
 
+	// Every seed numbers the fixture 1–6, so a ✕'s toast that outlives a reseed (a
+	// Back onto `?demo`, or midnight) holds a row the day on screen already has.
+	it('does not undo a removal into a reseeded example day', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+
+		const removed = store.removeTask(store.tasks[0].id);
+
+		mockPage.url = new URL('http://localhost/');
+		flushSync();
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(0));
+
+		mockPage.url = new URL('http://localhost/?demo');
+		flushSync();
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+
+		removed?.undo();
+
+		expect(store.tasks).toHaveLength(6);
+	});
+
 	// A ϕ measurement taken against a fabricated task would enter the visitor's own
 	// fit. The planner hides the affordance (`canLog`), but the Energy Lab renders
 	// this same day and calls `logFlow` with no such check — so the refusal belongs

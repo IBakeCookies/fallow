@@ -237,12 +237,8 @@ export class EnergyLabStore {
 			if (!this.#isPageOpen) return;
 
 			// `/energy` takes no date, so arriving from `/?date=` asks while the session
-			// still holds the last day's tasks.
+			// still holds the last day's tasks; the example day has no loaded date at all.
 			if (this.#session.loadedDate !== this.#session.selectedDate) return;
-
-			// The example day, still in memory while the visitor leaves `?demo`: the real day
-			// then loads under the same date, so a snapshot taken now is never retaken.
-			if (this.#session.isShowingDemo) return;
 
 			if (this.#snapshotDate === this.#session.loadedDate) return;
 
@@ -306,8 +302,7 @@ export class EnergyLabStore {
 		return (
 			this.#loaded &&
 			!this.#observations.isLoading &&
-			this.#session.loadedDate === this.#session.today &&
-			!this.#session.isShowingDemo
+			this.#session.loadedDate === this.#session.today
 		);
 	}
 

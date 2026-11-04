@@ -1430,16 +1430,8 @@ continue.
 
 The deepenings, strongest first.
 
-- **A10 — the example day reads as today's stored day — raised 2026-11-04.**
-  `#seedDemoDay` stamps the fixture with the viewed date, so `loadedDate` cannot
-  tell it from the real day and each reader adds `isShowingDemo` itself:
-  `logDrain` through the layout's thunk (S8), `isStopAdviceReady` (M116), the
-  Lab's order snapshot (M119). `/`'s constraints-bar key and `removeTask`'s undo
-  still key on the date alone (S9, S10), and the Lab spec's `MockSession`
-  re-spells the flag (A8's failure mode). Direction: the public `loadedDate`
-  answers which stored day is on screen, null while the fixture shows, and the
-  flag goes private. The private date `#canEditPlan` and the auto-save read
-  stays as it is, which is what M119's fix refused to move.
+- ~~**A10 — the example day reads as today's stored day.**~~ Fixed 2026-11-04,
+  [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
 - **A11 — the classic plan's energy schedule is built four times — raised
   2026-11-04.** `EnergyLabStore`'s `#classicEvaluation`, `calculateBurnoutRisk`'s
   gap loop, and `classicBlocks` in `rv16-output-vs-classic.probe.ts` ("Exactly
@@ -1469,17 +1461,10 @@ The deepenings, strongest first.
 
 The defects.
 
-- **S9 — a fixture row returns to the real day through ✕'s undo — raised
-  2026-11-04, traced.** `removeTask`'s undo compares only dates, `/` offers ✕ on
-  the fixture's rows, and nothing dismisses the toast on navigation: ✕ a
-  fixture row, leave by "Start my own day", press Undo, and the fixture task is
-  spliced into the real day and auto-saved, against `demo-day.ts`'s "no
-  fabricated task can reach a real profile". A10 closes it.
-- **S10 — the constraints bar keeps the fixture's closed state on the visitor's
-  own day — raised 2026-11-04, traced.** `/` keys the bar on
-  `session.loadedDate` and the bar snapshots `isOpen` at mount, so a visitor who
-  arrived cold on `/?demo` and presses "Start my own day" gets a 0 h day with the
-  bar closed, where a fresh `/` opens it. A10 closes it.
+- ~~**S9 — a fixture row returns to the real day through ✕'s undo.**~~ Fixed
+  2026-11-04, [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
+- ~~**S10 — the constraints bar keeps the fixture's closed state on the visitor's
+  own day.**~~ Fixed 2026-11-04, [demo-day.e2e.ts](e2e/demo-day.e2e.ts).
 - **S11 — an edit still inside the auto-save debounce is lost when the fixture
   seeds — raised 2026-11-04, traced, racy.** `#seedDemoDay` sets
   `#isShowingDemo` without flushing the pending write, and `#persistSession`
@@ -1502,11 +1487,8 @@ The defects.
   2026-11-04.** `/analytics`' rate delta prints "+0%" and a hyphen-minus; Zenith
   Gain in `metric-descriptor.ts` and plan-advice's `signedPlanValue` print "0%"
   and "−" (R3).
-- **M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses one —
-  raised 2026-11-04.** "`SessionStore` has a second day source" names
-  `logDrain`, `isStopAdviceReady` and the Lab's order snapshot (M119's fix,
-  which added it) but not the "what tomorrow already holds" effect. The file is
-  at its budget, and A10 shortens the list rather than growing it.
+- ~~**M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses one.**~~
+  Closed 2026-11-04 in [business/AGENTS.md](src/lib/business/AGENTS.md) itself.
 - **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
   `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
   offer, where docs/design.md has "an action is present when its callback is".
