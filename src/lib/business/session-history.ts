@@ -471,11 +471,7 @@ export interface CalibrationSnapshot {
 		 *  null below `SKILL_MIN_SCORED_LOGS` — a 2-log reading invites false trust. */
 		skill: { gapHours: number; scoredCount: number } | null;
 	};
-	/** The ☕/🪫 rows dated today, which the two fits below deferred — every
-	 *  surface that prints a log count owes the user this one too. */
 	energy: EnergyCalibration & {
-		pendingRestCount: number;
-		pendingDrainCount: number;
 		/** Each fit's §5 gap in drained fraction and the ratings it is measured
 		 *  over, or null below `SKILL_MIN_SCORED_LOGS`. */
 		skill: Record<
@@ -551,9 +547,10 @@ function calibrationSnapshotFrom(
 ): CalibrationSnapshot {
 	// Only the FITS are windowed — `ModelReport.drain` still carries every row,
 	// because the carry-over is a state read.
-	const restWindow = applyCausalWindow(rest, today);
-	const drainWindow = applyCausalWindow(drain, today);
-	const energy = calibrateEnergyParams(restWindow.counted, drainWindow.counted);
+	const energy = calibrateEnergyParams(
+		applyCausalWindow(rest, today).counted,
+		applyCausalWindow(drain, today).counted,
+	);
 
 	const stopping = fitStoppingValue(
 		stops,
@@ -575,8 +572,6 @@ function calibrationSnapshotFrom(
 		flow,
 		energy: {
 			...energy,
-			pendingRestCount: restWindow.pendingCount,
-			pendingDrainCount: drainWindow.pendingCount,
 			skill: energySkillFrom(rest, drain, recorded, energy.params, today),
 		},
 		stopping: {

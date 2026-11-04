@@ -712,24 +712,16 @@ export class EnergyLabStore {
 		return this.#stopAdvice;
 	}
 
-	// ----- Deferred logs -----
+	// ----- Causal window -----
 
 	// D is today, not the viewed day (business/AGENTS.md,
 	// "Being a today-only instrument does not exempt its fits").
-	// The counts name what the fits defer.
 	#drainWindow = $derived(
 		applyCausalWindow(this.#observations.drainObservations, this.#session.today),
 	);
-	get pendingDrainLogCount() {
-		return this.#drainWindow.pendingCount;
-	}
-
 	#restWindow = $derived(
 		applyCausalWindow(this.#observations.restObservations, this.#session.today),
 	);
-	get pendingRestLogCount() {
-		return this.#restWindow.pendingCount;
-	}
 
 	// ----- Drain calibration (α fit from end-of-session ratings) -----
 

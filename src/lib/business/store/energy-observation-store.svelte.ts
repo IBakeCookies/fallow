@@ -13,6 +13,7 @@ import * as drainObservationRepository from '$lib/data/repository/drain-observat
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
 import { sanitizeDrainObservations, sanitizeRestObservations } from '$lib/business/model/persisted';
+import { applyCausalWindow } from '$lib/business/model/causal-window';
 import type {
 	StorageReporter,
 	StorageStatusStore,
@@ -124,8 +125,8 @@ export class EnergyObservationStore {
 	 * One day's 🪫 ratings, per task — never "the" rating: a task worked in two
 	 * sessions has two (MATH.md §8.7), and the row shows them individually because
 	 * picking one is how a correction says which session it means. Owned here rather
-	 * than folded by each page, because both screens read it and asking it twice is
-	 * how the two drift.
+	 * than folded by each page, because both screens read it, as they do the two
+	 * deferred counts below, and asking it twice is how the two drift.
 	 *
 	 * Takes the day rather than reading the live clock: the main page renders any
 	 * date, and a row must show the ratings of the day it is showing. A write
@@ -149,6 +150,18 @@ export class EnergyObservationStore {
 		}
 
 		return byTask;
+	}
+
+	// What the identity fits defer: windowed at the live clock's today, never the
+	// loaded day (business/AGENTS.md, "Being a today-only instrument…").
+	#drainWindow = $derived(applyCausalWindow(this.#drainObservations, liveToday.value));
+	get pendingDrainLogCount() {
+		return this.#drainWindow.pendingCount;
+	}
+
+	#restWindow = $derived(applyCausalWindow(this.#restObservations, liveToday.value));
+	get pendingRestLogCount() {
+		return this.#restWindow.pendingCount;
 	}
 
 	get restObservations() {

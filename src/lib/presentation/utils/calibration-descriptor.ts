@@ -48,6 +48,7 @@ export interface ModelRow {
 export function calibrationRows(
 	calibration: CalibrationSnapshot | null,
 	locale: string,
+	pending: { rest: number; drain: number },
 ): ModelRow[] {
 	if (calibration === null) return [];
 
@@ -122,10 +123,10 @@ export function calibrationRows(
 	// loaded one reservoir alone being kept for that reservoir only (MATH.md §8.7).
 	const drainEvidence = (count: number, skill: RatingSkill) =>
 		evidenceWithRatingSkill(
-			energy.pendingDrainCount > 0
+			pending.drain > 0
 				? m.ana_model_note_drain_pending({
 						count,
-						pending: energy.pendingDrainCount,
+						pending: pending.drain,
 					})
 				: m.ana_model_note_days({
 						count,
@@ -181,10 +182,10 @@ export function calibrationRows(
 			),
 			defaultValue: f2(defaults.recoveryRate),
 			evidence: evidenceWithRatingSkill(
-				energy.pendingRestCount > 0
+				pending.rest > 0
 					? m.ana_model_note_recovery_pending({
 							count: energy.recovery.usedCount,
-							pending: energy.pendingRestCount,
+							pending: pending.rest,
 						})
 					: m.ana_model_note_ratings({
 							count: energy.recovery.usedCount,

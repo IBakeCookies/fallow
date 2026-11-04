@@ -31,15 +31,13 @@
 	} from '$lib/business/store/analytics-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
-	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 
 	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
 
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
-	const lab = getEnergyLabStore();
 
-	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
+	const pendingDrainLogs = $derived(observations.pendingDrainLogCount);
 
 	// The two fit cards read these two stores and not the range, so they wait on their
 	// own pair rather than on `areLogsLoading`.
@@ -88,7 +86,12 @@
 		analytics.hasModelReportFailed ? m.error_title() : m.ana_loading(),
 	);
 
-	const modelRows = $derived(calibrationRows(calibration, getDateLocale()));
+	const modelRows = $derived(
+		calibrationRows(calibration, getDateLocale(), {
+			rest: observations.pendingRestLogCount,
+			drain: observations.pendingDrainLogCount,
+		}),
+	);
 
 	const drainRanking = $derived(analytics.drainRanking);
 	const drainRankRows = $derived(

@@ -58,8 +58,8 @@
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
-	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
-	const pendingRestLogs = $derived(lab.pendingRestLogCount);
+	const pendingDrainLogs = $derived(observations.pendingDrainLogCount);
+	const pendingRestLogs = $derived(observations.pendingRestLogCount);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
 	const budgetCurve = $derived(lab.budgetCurve);
