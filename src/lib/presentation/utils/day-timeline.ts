@@ -4,6 +4,7 @@
    "Metric color-band thresholds"). */
 
 import type { SuggestedTask } from '$lib/business/model/metric/calculation';
+import { clampSwitchCost } from '$lib/business/utils/switch-cost';
 import { BAND_BAR_CLASS, type Band, getBandFlowReached } from '$lib/presentation/utils/band';
 
 export type DayBlock = {
@@ -59,6 +60,7 @@ export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
 		.filter((task) => runOrder.has(task.id))
 		.sort((a, b) => runOrder.get(a.id)! - runOrder.get(b.id)!);
 
+	const switchCost = clampSwitchCost(input.switchCost);
 	let startOffset = 0;
 
 	const blocks = ordered.map((task, index): DayBlock => {
@@ -71,12 +73,12 @@ export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
 			warmupHours: Math.min(hours, task.flowStateTime),
 			inFlowHours: Math.max(0, hours - task.flowStateTime),
 			ghostHours: Math.max(0, task.flowStateTime - hours),
-			switchHours: index === ordered.length - 1 ? 0 : input.switchCost,
+			switchHours: index === ordered.length - 1 ? 0 : switchCost,
 			band: getBandFlowReached(hours, task.flowStateTime),
 			isCompleted: task.completed,
 		};
 
-		startOffset += hours + input.switchCost;
+		startOffset += hours + switchCost;
 
 		return block;
 	});

@@ -1399,14 +1399,9 @@ it still held the stopped reading. The **M** series continues.
 Giving the switch bill's clamp one home found the allocator billing the
 negative cost the readings now refuse. The **M** series continues.
 
-- **M118 — the allocator funds past the budget while a negative switch cost is
-  typed — raised 2026-10-04.** The number input clamps on blur, not per
-  keystroke. `bestPlanWithSwitchCost` skips its subset search at `s ≤ 0` but
-  still takes `(n−1)·s` off the budget, so a negative cost adds hours to it,
-  and the plan can book more than the day declares; `naiveBaselineValue` bills
-  the same way, `calculateRemainingDay` takes a started task's switch off its
-  budget the same way, and the day timeline draws the typed gap. A4 kept the
-  allocator's two copies, so the readings bill that plan as switching nothing.
+- ~~**M118 — the allocator funds past the budget while a negative switch cost is
+  typed.**~~ Fixed 2026-11-04,
+  [zenith.test.ts](src/lib/business/model/zenith.test.ts).
 
 ## Findings from the 2026-10-04 M115 review
 

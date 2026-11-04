@@ -79,10 +79,10 @@ a constant, a bound, or a fit's conditioning:
   `fitSnapshots` instead of refitting: `readDaySummaries` and the trend read a
   past day under its record and today (or a day with none) under the live fit;
   the ☕/🪫 skill readings do too, but skip a day with no record.
-- Three constraints: the time budget plus cognitive/physical capacity pools
-  (task weight = dimension difficulty / 10). Switches cost `switchCost` hours
-  (attention residue; ϕ already prices ramp-up), charged only between funded
-  tasks; a solved plan's readings bill them by `calculatePlanSwitchHours`.
+- Three constraints: the time budget plus cognitive/physical capacity pools (task
+  weight = dimension difficulty / 10). Switches cost `switchCost` hours (attention
+  residue; ϕ already prices ramp-up), charged only between funded tasks, floored at 0 by
+  `clampSwitchCost`; a solved plan's readings bill them by `calculatePlanSwitchHours`.
 - **A plan may be solved from a PREFIX of hours already worked**: each task's block
   menu continues from `hᵢ` instead of from zero, the pools enter depleted by `Σ wᵢhᵢ`
   clamped at 0, and the switch bill is charged over the **day's** funded set

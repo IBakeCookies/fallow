@@ -1582,59 +1582,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 		/* A negative switch cost, which can be reached mid-typing because the field
 		   clamps on blur, plans, scores and draws as no switching. The plan never
-		   books more than the day declares. Nothing shipped moves at any cost ≥ 0.
-
-		   Tests:
-		   - src/lib/business/model/zenith.test.ts — "plans a negative switch cost as
-		     no switching", "bills the naive split no switching under a negative switch cost"
-		   - src/lib/business/model/metric/remaining-day.test.ts — "credits no hours for
-		     a finished task's switch under a negative switch cost"
-		   - src/lib/presentation/utils/day-timeline.test.ts — "draws no switch gap
-		     under a negative switch cost"
-		   Pins: none written. The readings' clamp is already pinned by the three
-		   "treats a negative switch cost as no switching" tests in calculation.test.ts,
-		   "bills no switch hours under a negative switch cost" (daily-metrics.test.ts)
-		   and "reserves no hours under a negative switch cost" (plan-advice.test.ts);
-		   they must stay green when the clamp moves.
-		   Out of scope:
-		   - Clamping per keystroke at the field: d5d5fe5 refused that, because the
-		     field must not fight the typing.
-		   - The advice card's switch-cost price, which prints the typed `declared` and
-		     prices `[0, 2s]`. Once the allocator clamps, both alternatives price as the
-		     baseline. M118 does not name it.
-		   - `DayLegend` and the Lab's classic evaluation: both already guard
-		     `switchCost > 0` for their gaps, and the Lab's solve inherits the allocator fix.
-		   - History, the audit and the persisted day: `persisted.ts` clamps on read
-		     (`atLeastZero`), so they never see a negative cost.
-		   Read before building:
-		   - src/lib/business/model/zenith.ts — `bestPlanWithSwitchCost`'s
-		     `budgetBlocksFor` (a negative overhead adds blocks), and `naiveBaselineValue`'s
-		     `blocksFor`, which bills the same way.
-		   - src/lib/business/model/metric/calculation.ts — `calculatePlanSwitchHours`
-		     holds the one clamp today (`Math.max(0, Number(switchCost) || 0)`, NaN included).
-		   - src/lib/business/model/metric/remaining-day.ts — `startedOutside * input.switchCost`
-		     credits the budget.
-		   - src/lib/presentation/utils/day-timeline.ts — `switchHours` and `startOffset`
-		     take the typed cost.
-		   - src/lib/business/utils/capacity-pool-bounds.ts and business/AGENTS.md
-		     (`utils/` is pure) — the precedent for one definition that both the model
-		     and presentation value-import.
-		   - business/model/AGENTS.md — the switch bullet names `calculatePlanSwitchHours`
-		     as where readings bill switches. Update it if the clamp moves.
-		   - MATH.md says nothing about a negative cost. This changes no formula and no section.
-		   Decisions:
-		   - Negative means no switching at every site. That is the convention d5d5fe5
-		     gave the readings, so each test asserts the answer at s = 0.
-		   - One clamp, in `business/utils`, read by `calculatePlanSwitchHours`, the
-		     allocator, the naive baseline, the remaining day and the timeline (R3).
-		     Rejected: a copy per site, which leaves five copies free to drift, the way
-		     A4 found the readings drifting. Rejected: the clamp in calculation.ts,
-		     because `presentation-not-to-business-model` bars the timeline from
-		     importing it.
-		   - The clamp goes in the model, not in a store. Rejected: a clamped store
-		     getter, because the field binds `session.switchCost` (a clamping getter
-		     fights the typing), and the Lab reaches the allocator without `DailyPlanStore`.
-		   Roadmap: M118 */
+		   books more than the day declares. Nothing shipped moves at any cost ≥ 0. */
 		// Budget-bound on a 2 h day: billed as typed, −0.5 h credits the budget an
 		// hour and the plan books 3 h.
 		const LONG_FLOW_TASKS: PooledTaskInput[] = [

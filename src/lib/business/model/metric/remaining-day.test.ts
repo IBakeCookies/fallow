@@ -292,9 +292,8 @@ describe('calculateRemainingDay', () => {
 		).toBeLessThanOrEqual(4 + 1e-9);
 	});
 
-	// ROADMAP M118, brief in zenith.test.ts "Switch Overhead". One candidate, so
-	// only the finished task's switch, charged here and not by the allocator, can
-	// move the answer.
+	// ROADMAP M118. One candidate, so only the finished task's switch, charged
+	// here and not by the allocator, can move the answer.
 	it("credits no hours for a finished task's switch under a negative switch cost", () => {
 		const plannedAt = (switchCost: number) =>
 			calculateRemainingDay(
