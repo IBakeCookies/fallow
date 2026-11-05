@@ -21,6 +21,7 @@
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { buildMetricTrack } from '$lib/presentation/utils/metric-descriptor';
+	import { BAND_TEXT_CLASS, getBandCompletionRateDelta } from '$lib/presentation/utils/band';
 	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
 	import { removeLogWithUndo } from '$lib/presentation/utils/remove-log-with-undo';
 	import { fromISO } from '$lib/business/utils/date';
@@ -356,7 +357,7 @@
 			>
 				{#snippet note()}
 					{#if rateDelta !== null}
-						<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
+						<span class={BAND_TEXT_CLASS[getBandCompletionRateDelta(rateDelta)]}>
 							{rateDelta >= 0 ? '+' : ''}{rateDelta}%
 						</span>
 						{m.ana_vs_prev({

@@ -632,7 +632,7 @@ consistency, load, one per question the range asks. Two of the old folded rows
 are the notes' numbers and those tracks' denominators: Longest streak in the
 streak's, Planned hours in the logged hours'. Active days, Rest hours and Best
 day read always-open under a rule in the same card as label, value and suffix.
-Nothing here is judged: every track is `neutral`, no row a `Band` or a tooltip.
+Only the rate's delta is judged: every track is `neutral`, no row a `Band`.
 
 **One card, not one per reading** — `/`'s shape. `stat-tile.svelte` therefore
 draws no shell of its own: four shells side by side said the four readings were

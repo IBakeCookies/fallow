@@ -2,7 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { cn } from '$lib/presentation/utils';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
-	import { BAND_TEXT_CLASS } from '$lib/presentation/utils/band';
+	import { BAND_TEXT_CLASS, getBandValueVsClassic } from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 	interface Props {
@@ -54,13 +54,7 @@
 			<p class="text-lg font-semibold text-ty-silent">—</p>
 			<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>
 		{:else}
-			<!-- Three readings, not two: a rounded small LOSS arrives as -0, which `>= 0`
-			     reads as a win — the tile signed a beaten plan green. A tie is neither. -->
-			<p
-				class="text-lg font-semibold {BAND_TEXT_CLASS[
-					valueVsClassic > 0 ? 'success' : valueVsClassic < 0 ? 'warning' : 'neutral'
-				]}"
-			>
+			<p class="text-lg font-semibold {BAND_TEXT_CLASS[getBandValueVsClassic(valueVsClassic)]}">
 				{valueVsClassic > 0 ? '+' : ''}{valueVsClassic}%
 			</p>
 			<!-- Switch cost and the capacity pools reach this number and nothing else on

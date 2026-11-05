@@ -125,6 +125,42 @@ export function getBandFlowReached(hours: number, flowStateTime: number): Band {
 	return hours >= flowStateTime ? 'success' : 'warning';
 }
 
+export function getBandZenithGain(gainPercent: number): Band {
+	if (gainPercent >= 15) return 'success';
+
+	if (gainPercent >= 5) return 'neutral';
+
+	return 'warning';
+}
+
+export function getBandQuickWins(quickWins: number): Band {
+	return quickWins > 0 ? 'success' : 'neutral';
+}
+
+/**
+ * The ratio has to hold, not merely be non-zero: one easy task against thirty
+ * hard ones is not a day that funds its own recovery.
+ */
+export function getBandRecoveryRatio(easy: number, hard: number): Band {
+	return easy >= hard ? 'success' : 'warning';
+}
+
+/**
+ * Three readings, not two: a rounded small loss arrives as -0, which `>= 0`
+ * would read as a win. A tie is neither.
+ */
+export function getBandValueVsClassic(valueVsClassic: number): Band {
+	if (valueVsClassic > 0) return 'success';
+
+	if (valueVsClassic < 0) return 'warning';
+
+	return 'neutral';
+}
+
+export function getBandCompletionRateDelta(delta: number): Band {
+	return delta >= 0 ? 'success' : 'critical';
+}
+
 /**
  * Which pool the day leans on, from the cognitive share. The word on the row
  * and the colour behind it are the same call: two copies of `> 60 / < 40` drift

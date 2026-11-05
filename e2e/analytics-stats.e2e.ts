@@ -265,6 +265,18 @@ test('the streak reads against the longest one in the range', async ({ page }) =
 	await expect(streak.locator('span.band-fill.bg-ty-secondary')).toHaveCount(0);
 });
 
+// The previous week holds the five-day run, every task done, so this week's rate is a drop.
+test('a completion rate below the previous range reads its drop in danger ink', async ({
+	page,
+}) => {
+	await seedRange(page);
+	await page.goto('/analytics');
+
+	await expect(statTile(page, 'Avg completion rate').getByText(/^-\d+%$/)).toHaveClass(
+		/\btext-danger\b/,
+	);
+});
+
 test('a tile with no reading has no scale', async ({ page }) => {
 	await seedRange(page);
 
