@@ -426,6 +426,7 @@
 							endPhys={plan.evaluation.workEndPhys}
 							workHours={plan.evaluation.workHours}
 							{valueVsClassic}
+							locale={getDateLocale()}
 						/>
 					{:else}
 						<button

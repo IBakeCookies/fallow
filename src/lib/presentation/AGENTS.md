@@ -774,7 +774,7 @@ no-op with a price on it. `digitsFor` (`utils/plan-advice-descriptor.ts`) gives
 the whole row one digit when any two of its printed readings collide, so the
 options stay comparable with each other; `energyBalanceReading` therefore takes
 the rendered number rather than rounding one, and the dashboard row, which has
-no locale and nothing to collide with, keeps the whole-percent default. **One
+nothing to collide with, keeps the whole-percent default. **One
 digit and no further**: it leaves 1 of 516 Energy Balance options printing its
 row's reading, worth 0.0344 badness points, on a pair a second decimal would
 separate and nothing else would use

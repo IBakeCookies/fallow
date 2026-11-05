@@ -50,6 +50,7 @@ import {
 	getBandZenithGain,
 	type Band,
 } from '$lib/presentation/utils/band';
+import { formatSignedPercent } from '$lib/presentation/utils/number-format';
 
 type Reading = Pick<Metric, 'value' | 'band' | 'track'>;
 
@@ -77,7 +78,8 @@ export function buildMetricTrack(filled: number, total: number): MetricTrack | u
 export function buildMetrics(
 	metrics: DailyMetrics,
 	pools: { cognitiveHours: number; physicalHours: number },
-	remainingDay: RemainingDay | null = null,
+	remainingDay: RemainingDay | null,
+	locale: string,
 ): Metric[] {
 	const notAvailable: Reading = {
 		value: m.na_value(),
@@ -168,11 +170,7 @@ export function buildMetrics(
 			description: m.metric_zenith_gain_desc(),
 			...gated(
 				planned,
-				// Signed from the value, not hardcoded '+': the dashboard reads the
-				// POOLED gain, which can be slightly negative when the pooled greedy
-				// is the suboptimal side — a hardcoded plus rendered
-				// that as "+-0.5%".
-				`${zenithGain.gainPercent > 0 ? '+' : zenithGain.gainPercent < 0 ? '−' : ''}${Math.abs(zenithGain.gainPercent)}%`,
+				formatSignedPercent(zenithGain.gainPercent, locale),
 				getBandZenithGain(zenithGain.gainPercent),
 			),
 		},

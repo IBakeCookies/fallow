@@ -4,6 +4,7 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { BAND_TEXT_CLASS, getBandValueVsClassic } from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { formatSignedPercent } from '$lib/presentation/utils/number-format';
 
 	interface Props {
 		totalOutput: string;
@@ -14,6 +15,8 @@
 		workHours: number;
 		/** This plan against the classic allocator's, under the model's own objective, in per cent */
 		valueVsClassic: number | null;
+		/** The reader's locale tag the vs-classic percent prints in. */
+		locale: string;
 		class?: string;
 	}
 
@@ -23,6 +26,7 @@
 		endPhys,
 		workHours,
 		valueVsClassic,
+		locale,
 		class: className,
 	}: Props = $props();
 </script>
@@ -55,7 +59,7 @@
 			<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>
 		{:else}
 			<p class="text-lg font-semibold {BAND_TEXT_CLASS[getBandValueVsClassic(valueVsClassic)]}">
-				{valueVsClassic > 0 ? '+' : ''}{valueVsClassic}%
+				{formatSignedPercent(valueVsClassic, locale)}
 			</p>
 			<!-- Switch cost and the capacity pools reach this number and nothing else on
 			     the page, so it moves when they are edited elsewhere — hence the tooltip.

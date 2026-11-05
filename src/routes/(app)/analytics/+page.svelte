@@ -22,6 +22,7 @@
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { buildMetricTrack } from '$lib/presentation/utils/metric-descriptor';
 	import { BAND_TEXT_CLASS, getBandCompletionRateDelta } from '$lib/presentation/utils/band';
+	import { formatSignedPercent } from '$lib/presentation/utils/number-format';
 	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
 	import { removeLogWithUndo } from '$lib/presentation/utils/remove-log-with-undo';
 	import { fromISO } from '$lib/business/utils/date';
@@ -358,7 +359,7 @@
 				{#snippet note()}
 					{#if rateDelta !== null}
 						<span class={BAND_TEXT_CLASS[getBandCompletionRateDelta(rateDelta)]}>
-							{rateDelta >= 0 ? '+' : ''}{rateDelta}%
+							{formatSignedPercent(rateDelta, getDateLocale())}
 						</span>
 						{m.ana_vs_prev({
 							period: RANGE_LABELS[analytics.range].prevLabel(),

@@ -158,7 +158,11 @@ export function getBandValueVsClassic(valueVsClassic: number): Band {
 }
 
 export function getBandCompletionRateDelta(delta: number): Band {
-	return delta >= 0 ? 'success' : 'critical';
+	if (delta > 0) return 'success';
+
+	if (delta < 0) return 'critical';
+
+	return 'neutral';
 }
 
 /**

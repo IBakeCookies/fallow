@@ -77,7 +77,7 @@
 	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
 
 	const daily = $derived(plan.daily);
-	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
+	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay, getDateLocale()));
 	// The two inputs every headline reading is gated on in `buildMetrics`.
 	const hasPlan = $derived(daily.totalTasks > 0 && daily.budgetHours > 0);
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
