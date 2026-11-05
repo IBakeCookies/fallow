@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
@@ -15,16 +15,8 @@
 	// Why: presentation/AGENTS.md, "R3 in the UI — the two task screens are one definition"
 
 	interface Props {
-		title: string;
+		task: TaskEdit;
 		completed: boolean;
-		physicalDifficulty: number;
-		mentalDifficulty: number;
-		enjoyment: number;
-		/** None of the three is badged here, but ✎ must round-trip them rather than
-		 *  clear them. */
-		mustDoToday?: boolean;
-		importance?: TaskImportance;
-		tags?: string[];
 		/** The user's past tags, for the ✎ editor's tag field — the page's, since a
 		 *  row cannot read the session store. */
 		tagVocabulary?: string[];
@@ -59,14 +51,8 @@
 	}
 
 	let {
-		title,
+		task,
 		completed,
-		physicalDifficulty,
-		mentalDifficulty,
-		enjoyment,
-		mustDoToday = false,
-		importance = 'normal',
-		tags,
 		tagVocabulary,
 		color,
 		trueEffort,
@@ -125,14 +111,8 @@
 
 <Tooltip.Provider>
 	<TaskRowShell
-		{title}
+		{task}
 		{completed}
-		{physicalDifficulty}
-		{mentalDifficulty}
-		{enjoyment}
-		{mustDoToday}
-		{importance}
-		{tags}
 		{tagVocabulary}
 		withMustDoToday={false}
 		{ontoggle}

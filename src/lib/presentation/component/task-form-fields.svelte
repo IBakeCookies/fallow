@@ -3,11 +3,21 @@
 
 	/** `mustDoToday`, `importance` and `tags` are required here though optional on a
 	 *  stored task: absence there means never flagged / normal / untagged, while a
-	 *  control always answers the question. */
+	 *  control always answers the question — `toTaskEdit` is where absence becomes that answer. */
 	export type TaskEdit = Pick<
 		Task,
 		'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'
 	> & { mustDoToday: boolean; importance: TaskImportance; tags: string[] };
+
+	export const toTaskEdit = (task: Pick<Task, keyof TaskEdit>): TaskEdit => ({
+		title: task.title,
+		physicalDifficulty: task.physicalDifficulty,
+		mentalDifficulty: task.mentalDifficulty,
+		enjoyment: task.enjoyment,
+		mustDoToday: task.mustDoToday ?? false,
+		importance: task.importance ?? 'normal',
+		tags: task.tags ?? [],
+	});
 </script>
 
 <script lang="ts">

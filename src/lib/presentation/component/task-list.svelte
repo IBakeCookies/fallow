@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
-	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
+	import { toTaskEdit, type TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import type {
 		DrainDraft,
 		EditorDraft,
@@ -146,10 +146,7 @@
 	{#each group as task (task.id)}
 		<TaskItem
 			id={task.id}
-			title={task.title}
-			physicalDifficulty={task.physicalDifficulty}
-			mentalDifficulty={task.mentalDifficulty}
-			enjoyment={task.enjoyment}
+			task={toTaskEdit(task)}
 			nature={task.nature}
 			completed={task.completed}
 			priorityScore={task.priorityScore}
@@ -170,9 +167,6 @@
 			totalHours={timeline?.totalHours}
 			slideDay={getSlideDay(task.createdAt, viewedDate)}
 			flowMinutes={flowLogs?.get(task.id)}
-			mustDoToday={task.mustDoToday}
-			importance={task.importance}
-			tags={task.tags}
 			{tagVocabulary}
 			{ontoggle}
 			{onremove}

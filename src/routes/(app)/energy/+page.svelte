@@ -12,6 +12,7 @@
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
+	import { toTaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import TaskFormEnergyPreview from '$lib/presentation/component/task-form-energy-preview.svelte';
 	import DayActions from '$lib/presentation/component/day-actions.svelte';
@@ -290,14 +291,8 @@
 {#snippet taskRows()}
 	{#each tasks as task (task.id)}
 		<EnergyTaskRow
-			title={task.title}
+			task={toTaskEdit(task)}
 			completed={task.completed}
-			physicalDifficulty={task.physicalDifficulty}
-			mentalDifficulty={task.mentalDifficulty}
-			enjoyment={task.enjoyment}
-			mustDoToday={task.mustDoToday}
-			importance={task.importance}
-			tags={task.tags}
 			tagVocabulary={session.tagVocabulary}
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}

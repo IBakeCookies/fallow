@@ -1317,18 +1317,12 @@ runner-up.
 - ~~**A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
   instead of through it.**~~ Fixed 2026-10-04, with M118 found on the way,
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
-- **A5 — a task's definition crosses the row as seven loose props — raised
-  2026-10-01.** `TaskEdit` names the seven fields a form sets, but `task-item`,
-  `energy-task-row` and `task-row-shell` each take them separately, defaults for
-  absent fields are written at all three, and the shell re-packs them. So ✎'s
-  round-trip holds only while every hop forwards every field, and no row story
-  sets a non-default `tags` or `importance`. Adding `importance` (5d4ff5f) and
-  `tags` (4c81247) each touched the whole chain. Direction: the definition
-  travels whole and the default is decided once. The ⚡/🪫 editors' 14 props
-  still take the same hops from `task-list` down: A1 gave their lifecycle one
-  module, not their route to the shell. Re-measured 2026-11-04, off each
-  `Props`: `task-list` 31, `task-item` 41, `energy-task-row` 30 (26 forwarded
-  unread), `task-row-shell` 34; the editors' 14 are the larger half.
+- **A5 — the ⚡/🪫 editors' 14 props cross the row loose — raised
+  2026-10-01.** Its other half, the task's seven-field definition, travels
+  whole since 2026-11-05
+  ([task-list.e2e.ts](e2e/task-list.e2e.ts)). The editors' 14 still take
+  every hop from `task-list` and the Lab's page down to `task-row-shell`: A1
+  gave their lifecycle one module, not their route to the shell.
 - **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
   Lab route's three reading builders, `param-row`'s null state and
   `calibration-descriptor.ts` each decide part of a fit's reading (its states,

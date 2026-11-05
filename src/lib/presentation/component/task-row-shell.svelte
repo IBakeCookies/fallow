@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -27,16 +27,10 @@
 		'flex items-center gap-text-xs rounded-sm bg-surface-inset px-box-3xs py-text-3xs whitespace-nowrap tabular-nums';
 
 	interface Props {
-		title: string;
+		/** The ✎ editor seeds from it and hands it back whole. */
+		task: TaskEdit;
 		completed: boolean;
-		physicalDifficulty: number;
-		mentalDifficulty: number;
-		enjoyment: number;
-		mustDoToday?: boolean;
-		importance?: TaskImportance;
-		/** Not badged on a row — the ✎ editor must round-trip them rather than clear them. */
-		tags?: string[];
-		/** The user's past tags, for the ✎ editor's tag field. Data, like `tags`
+		/** The user's past tags, for the ✎ editor's tag field. Data, like `task`
 		 *  itself: it switches nothing, and the page that has the vocabulary is the
 		 *  only one that can hand it down. */
 		tagVocabulary?: string[];
@@ -81,14 +75,8 @@
 	}
 
 	let {
-		title,
+		task,
 		completed,
-		physicalDifficulty,
-		mentalDifficulty,
-		enjoyment,
-		mustDoToday = false,
-		importance = 'normal',
-		tags = [],
 		tagVocabulary = [],
 		withMustDoToday = true,
 		ontoggle,
@@ -176,7 +164,7 @@
 					checked={completed}
 					onchange={onCompletionChange}
 					aria-label={m.task_toggle_aria({
-						title,
+						title: task.title,
 					})}
 					class="h-4 w-4 shrink-0 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand-line"
 				/>
@@ -190,7 +178,7 @@
 							completed ? 'text-ty-silent line-through' : 'text-ty-primary',
 						)}
 					>
-						{title}
+						{task.title}
 					</h3>
 					{@render badges?.()}
 				</div>
@@ -214,11 +202,11 @@
 						<Tooltip.Trigger class="cursor-help text-left">
 							<!-- body/mind/brand are how every other reading of the same three names is
 				     written (`drain-log-form`, `log-history-list`). -->
-							<span class="font-medium text-body">P {physicalDifficulty}</span>
+							<span class="font-medium text-body">P {task.physicalDifficulty}</span>
 							<span class="text-ty-ghost">·</span>
-							<span class="font-medium text-mind">M {mentalDifficulty}</span>
+							<span class="font-medium text-mind">M {task.mentalDifficulty}</span>
 							<span class="text-ty-ghost">·</span>
-							<span class="font-medium text-brand">E {enjoyment}</span>
+							<span class="font-medium text-brand">E {task.enjoyment}</span>
 						</Tooltip.Trigger>
 						<Tooltip.Content>
 							<p>{m.task_inputs_tooltip()}</p>
@@ -401,15 +389,7 @@
 	{#if isEditing && onupdate}
 		<TaskEditForm
 			{tagVocabulary}
-			seed={{
-				title,
-				physicalDifficulty,
-				mentalDifficulty,
-				enjoyment,
-				mustDoToday,
-				importance,
-				tags,
-			}}
+			seed={task}
 			{withMustDoToday}
 			onsave={(edit) => {
 				onupdate(edit);
