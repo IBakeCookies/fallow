@@ -123,6 +123,10 @@
 		// nothing once the label it sat beside was gone.
 		await expect(canvas.getByText('Momentum: Upward')).toBeVisible();
 
+		await expect(canvas.getByText('Momentum: Upward')).toHaveClass(
+			'bg-success-tint text-success-strong',
+		);
+
 		// Each judged band carries text a screen reader hears; the two neutral tiles
 		// (Completion Rate and Flow Coverage) are the default value colour, make no
 		// claim, and stay silent.
@@ -212,16 +216,23 @@
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('Momentum: Reset Reqd')).toBeVisible();
+
+		await expect(canvas.getByText('Momentum: Reset Reqd')).toHaveClass(
+			'bg-warning-tint text-warning-strong',
+		);
 	}}
 />
 
 <Story
 	name="Stable"
 	args={{
-		momentum: 0,
+		// What `Math.round` makes of a small loss: a tie, not a loss.
+		momentum: -0,
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('Momentum: Stable')).toBeVisible();
+		await expect(canvas.getByText('Momentum: Stable')).toHaveClass('border-border');
+		await expect(canvas.getByText('Momentum: Stable')).not.toHaveClass('bg-warning-tint');
 	}}
 />
 
@@ -233,5 +244,7 @@
 	play={async ({ canvas }) => {
 		// No history yet: the badge names the reading and reads N/A
 		await expect(canvas.getByText('Momentum: N/A')).toBeVisible();
+		await expect(canvas.getByText('Momentum: N/A')).toHaveClass('border-border');
+		await expect(canvas.getByText('Momentum: N/A')).not.toHaveClass('bg-success-tint');
 	}}
 />

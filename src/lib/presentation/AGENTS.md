@@ -793,10 +793,10 @@ keeps its own copy, and it is a wider predicate — it also drops an unfunded ta
 
 **A view model carries a `Band`, never a class string.** `Metric.band` and
 `AdviceRow.beforeBand` name the band; the component looks up `BAND_TEXT_CLASS` /
-`BAND_BAR_CLASS` and `bandLabel`. Keying anything off `text-success` makes
-renaming a token a silent behaviour change. `bandLabel` returns `null` for
-`neutral` on purpose — the default value colour makes no claim, so silence is
-the honest equivalent.
+`BAND_BAR_CLASS` / `BAND_BADGE_CLASS` and `bandLabel`. Keying anything off
+`text-success` makes renaming a token a silent behaviour change. `bandLabel`
+returns `null` for `neutral` on purpose — the default value colour makes no
+claim, so silence is the honest equivalent.
 
 **The plan-adherence verdict band is not one of them.**
 `ADHERENCE_TIE_BAND` (`utils/plan-audit-descriptor.ts`) stays in this layer, but

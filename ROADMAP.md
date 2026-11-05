@@ -1474,11 +1474,9 @@ The defects.
 The read-only review of M121's move found it clean, and one sign-to-colour call
 it left behind. The **M** series continues.
 
-- **M127 — the Momentum badge tints by its trend's sign in the component —
-  raised 2026-11-05.** `metric-headline-strip.svelte` picks `bg-success-tint` or
-  `bg-warning-tint` from `Math.sign(momentum)`, a band decision outside
-  `band.ts` against presentation/AGENTS.md's "the whole banding policy in one
-  module"; no `BAND_*` table holds a badge's tint.
+- ~~**M127 — the Momentum badge tints by its trend's sign in the component.**~~
+  Fixed 2026-11-05,
+  [metric-headline-strip.stories.svelte](src/lib/presentation/component/metric-headline-strip.stories.svelte).
 
 ## Findings from the 2026-11-05 M122 build
 
