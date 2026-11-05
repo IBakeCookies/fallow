@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-	ALPHA_FIT_MAX,
-	ALPHA_FIT_MIN,
 	CAPACITY_MAP_POLE_MARGIN,
 	capacityFromDrainRate,
 	DEFAULT_ENERGY_PARAMS,
@@ -34,6 +32,7 @@ import {
 	mapEnjoyability,
 	productivity,
 } from '$lib/business/model/zenith';
+import { ALPHA_FIT_MAX, ALPHA_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 
 const MS_PER_HOUR = 3_600_000;
 /** An arbitrary fixed wall clock: the day's breaks are DELTAS between moments. */

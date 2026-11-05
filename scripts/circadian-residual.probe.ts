@@ -322,8 +322,6 @@ import {
 	toPhysicalDrainObservations,
 } from '$lib/business/model/energy-calibration';
 import {
-	ALPHA_FIT_MAX,
-	ALPHA_FIT_MIN,
 	capacityFromDrainRate,
 	DEFAULT_ENERGY_PARAMS,
 	DRAIN_NOISE_PRIOR_STD,
@@ -333,6 +331,7 @@ import {
 	type ReservoirDemand,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { ALPHA_FIT_MAX, ALPHA_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import type { DrainObservationRecord } from '$lib/data/type';
 
 const DAYS = 260;

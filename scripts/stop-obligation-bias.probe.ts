@@ -112,8 +112,6 @@ import { describe, it } from 'vitest';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	DEFAULT_STEP_HOURS as STEP,
-	STOP_FIT_MAX,
-	STOP_FIT_MIN,
 	STOP_INVERSION_MARGIN,
 	STOP_PRIOR_STRENGTH,
 	evaluateSchedule,
@@ -127,6 +125,7 @@ import {
 	type ScheduleBlock,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
+import { STOP_FIT_MAX, STOP_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import {
 	DEFAULT_USER_CONSTANTS,
 	mapEffort,

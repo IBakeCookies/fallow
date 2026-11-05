@@ -181,11 +181,11 @@ import {
 } from '$lib/business/model/energy-calibration';
 import {
 	DEFAULT_ENERGY_PARAMS,
-	RECOVERY_FIT_MIN,
 	simulateReservoirs,
 	type EnergyParams,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { RECOVERY_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,

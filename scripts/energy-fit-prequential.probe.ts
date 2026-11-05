@@ -184,8 +184,6 @@ import {
 	toRestObservations,
 } from '$lib/business/model/energy-calibration';
 import {
-	ALPHA_FIT_MAX,
-	ALPHA_FIT_MIN,
 	DEFAULT_ENERGY_PARAMS,
 	DRAIN_NOISE_PRIOR_STD,
 	DRAIN_PRIOR_STRENGTH,
@@ -193,13 +191,9 @@ import {
 	fitRecoveryRate,
 	fitStoppingValue,
 	optimizeSchedule,
-	RECOVERY_FIT_MAX,
-	RECOVERY_FIT_MIN,
 	RECOVERY_NOISE_PRIOR_STD,
 	RECOVERY_PRIOR_STRENGTH,
 	simulateReservoirs,
-	STOP_FIT_MAX,
-	STOP_FIT_MIN,
 	STOP_NOISE_PRIOR_STD,
 	STOP_PRIOR_STRENGTH,
 	stopIndifferencePoint,
@@ -209,6 +203,14 @@ import {
 	type ScheduleBlock,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
+import {
+	ALPHA_FIT_MAX,
+	ALPHA_FIT_MIN,
+	RECOVERY_FIT_MAX,
+	RECOVERY_FIT_MIN,
+	STOP_FIT_MAX,
+	STOP_FIT_MIN,
+} from '$lib/business/utils/energy-fit-bounds';
 import { DEFAULT_USER_CONSTANTS, type UserConstants } from '$lib/business/model/zenith';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import type { DrainObservationRecord, RestObservationRecord, Task } from '$lib/data/type';

@@ -10,14 +10,13 @@ import {
 	toRestObservations,
 } from '$lib/business/model/energy-calibration';
 import {
-	ALPHA_FIT_MIN,
 	capacityFromDrainRate,
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
 	simulateReservoirs,
 } from '$lib/business/model/zenith-energy';
-import { RECOVERY_FIT_MIN } from '$lib/business/model/zenith-energy';
+import { ALPHA_FIT_MIN, RECOVERY_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import { CAPACITY_POOL_MAX_HOURS } from '$lib/business/utils/capacity-pool-bounds';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 

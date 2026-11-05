@@ -17,7 +17,10 @@
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
-	import { calibrationRows } from '$lib/presentation/utils/calibration-descriptor';
+	import {
+		calibrationRows,
+		drainPendingLine,
+	} from '$lib/presentation/utils/calibration-descriptor';
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { buildMetricTrack } from '$lib/presentation/utils/metric-descriptor';
@@ -537,11 +540,7 @@
 
 			{#if pendingDrainLogs > 0}
 				<p class="mt-text-sm text-xs text-ty-secondary">
-					{pendingDrainLogs === 1
-						? m.energy_drain_pending_one()
-						: m.energy_drain_pending({
-								count: pendingDrainLogs,
-							})}
+					{drainPendingLine(pendingDrainLogs)}
 				</p>
 			{/if}
 		</div>

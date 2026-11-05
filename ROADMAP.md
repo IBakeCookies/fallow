@@ -1321,19 +1321,8 @@ runner-up.
   props.**~~ Fixed 2026-11-05, the definition in
   [task-list.e2e.ts](e2e/task-list.e2e.ts) and the editors' 14 in
   [flow-log.e2e.ts](e2e/flow-log.e2e.ts).
-- **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
-  Lab route's three reading builders, `param-row`'s null state and
-  `calibration-descriptor.ts` each decide part of a fit's reading (its states,
-  ± or spread, two decimals), kept in step by the descriptor's header in prose.
-  The Lab's steppers also spell the fit bounds as literals that nothing ties to
-  `ALPHA_FIT_MIN` and its five siblings, which have no production importer.
-  Direction: one module in presentation decides a fit's reading for both
-  screens, holding M108's split (the Lab's λ₀ reads `spread`, Analytics keeps
-  ±) as one decision; the bounds get one definition that the model and the route
-  both read, as `capacity-pool-bounds.ts` does for the pools. Widened by
-  5a35145: the 🪫 pending sentence's one/many choice is now made in `/energy`,
-  `/analytics`' drain ranking and `drain-calibration-card`, under two message
-  families for one count.
+- ~~**A6 — how a fit prints is decided in three modules.**~~ Fixed 2026-11-05,
+  [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).
 - ~~**A7 — Yield Index reports "no reading" as 0.**~~ Fixed 2026-11-04,
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
 - **A8 — tomorrow's record is held by two stores under one key — raised
