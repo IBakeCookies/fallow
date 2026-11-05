@@ -1483,7 +1483,17 @@ it left behind. The **M** series continues.
 M122 gave `buildMetrics` the reader's locale and left one decimal it does not
 use. The **M** series continues.
 
-- **M128 — Longest Warm-Up prints its ϕ unlocalized — raised 2026-11-05.**
-  `metric-descriptor.ts` builds the value with `flowStateTime.toFixed(1)`, so a
-  German reader gets "1.5h" beside "+12,3%", against number-format.ts's
-  "decimals follow the reader's locale".
+- ~~**M128 — Longest Warm-Up prints its ϕ unlocalized.**~~ Fixed 2026-11-05,
+  [metric-descriptor.test.ts](src/lib/presentation/utils/metric-descriptor.test.ts).
+
+## Findings from the 2026-11-05 M128 plan
+
+Routing M128 found the same `toFixed` decimal outside `buildMetrics`, left out
+of that fix by choice. The **M** series continues.
+
+- **M129 — seven more user-visible decimals print unlocalized — raised
+  2026-11-05.** `task-item.svelte` (effort, priority score),
+  `task-form-preview.svelte` (priority score), `energy-task-row.svelte`
+  (effort), `day-constraints-bar.svelte` (slack and switching hours) and `/`'s
+  `+page.svelte` (remaining hours) each print `toFixed`, so a German reader gets
+  "1.5" where `formatDecimals` would give "1,5".

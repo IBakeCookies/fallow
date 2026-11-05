@@ -50,7 +50,7 @@ import {
 	getBandZenithGain,
 	type Band,
 } from '$lib/presentation/utils/band';
-import { formatSignedPercent } from '$lib/presentation/utils/number-format';
+import { formatDecimals, formatSignedPercent } from '$lib/presentation/utils/number-format';
 
 type Reading = Pick<Metric, 'value' | 'band' | 'track'>;
 
@@ -319,7 +319,7 @@ export function buildMetrics(
 			// Next-up, so gating on active tasks is the matching gate.
 			...gated(
 				hasActive && longestWarmUp !== null,
-				`${longestWarmUp?.flowStateTime.toFixed(1)}h`,
+				longestWarmUp !== null ? `${formatDecimals(longestWarmUp.flowStateTime, 1, locale)}h` : '',
 				longestWarmUp !== null
 					? getBandFlowReached(longestWarmUp.suggestedHours, longestWarmUp.flowStateTime)
 					: 'warning',
