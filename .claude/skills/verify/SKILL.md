@@ -27,10 +27,10 @@ the README should show production styling.
 ## Drive (Playwright)
 
 Playwright is a devDependency; chromium is installed under
-`~/.cache/ms-playwright`. **Gotcha:** the headless shell fails with
-`libnspr4.so: cannot open shared object file` because NSS/NSPR aren't
-installed system-wide and there's no sudo. Fix without root — download
-the debs and point `LD_LIBRARY_PATH` at the extracted libs:
+`~/.cache/ms-playwright`. **Gotcha:** where NSS/NSPR aren't installed
+system-wide, the headless shell fails with `libnspr4.so: cannot open shared
+object file`, and there's no sudo. Fix without root — download the debs and
+point `LD_LIBRARY_PATH` at the extracted libs:
 
 ```bash
 mkdir -p "$SCRATCH/libs" && cd "$SCRATCH/libs"
@@ -51,8 +51,9 @@ const { chromium } = require('playwright');
 ## Flows worth driving
 
 - All data is client-side IndexedDB — a fresh headless profile starts
-  empty. Seed today via the UI: fill `getByPlaceholder('e.g., Boxing training')`,
-  click `Deploy Task`, then wait ~400ms for the auto-save `$effect`.
+  empty. Seed today the way `e2e/helpers.ts` does: `addTask` (the title field
+  is in the dialog behind `Add task`), then `setBudget` — the headline readings
+  stay N/A until the day has hours — then wait ~400ms for the auto-save.
 - The viewed day derives from the URL: `/` = today, `/?date=YYYY-MM-DD` =
   history (invalid/future dates fall back to today). Past-day view shows
   the "Viewing a past day" banner and an amber date label in the nav.

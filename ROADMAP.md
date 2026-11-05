@@ -1480,3 +1480,13 @@ it left behind. The **M** series continues.
   `bg-warning-tint` from `Math.sign(momentum)`, a band decision outside
   `band.ts` against presentation/AGENTS.md's "the whole banding policy in one
   module"; no `BAND_*` table holds a badge's tint.
+
+## Findings from the 2026-11-05 M122 build
+
+M122 gave `buildMetrics` the reader's locale and left one decimal it does not
+use. The **M** series continues.
+
+- **M128 — Longest Warm-Up prints its ϕ unlocalized — raised 2026-11-05.**
+  `metric-descriptor.ts` builds the value with `flowStateTime.toFixed(1)`, so a
+  German reader gets "1.5h" beside "+12,3%", against number-format.ts's
+  "decimals follow the reader's locale".
