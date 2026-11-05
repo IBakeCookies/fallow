@@ -69,8 +69,6 @@
 			onimportdate: fn(() => Promise.resolve(0)),
 			onsaveroutine: fn(),
 			ondeleteroutine: fn(),
-			carryCount: 0,
-			oncarry: fn(),
 		},
 	});
 </script>
@@ -379,6 +377,8 @@
 <Story
 	name="Nothing to carry"
 	args={{
+		carryCount: 0,
+		oncarry: fn(),
 		currentTasks: [
 			{
 				...task(1, 'boxing'),

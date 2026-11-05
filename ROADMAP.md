@@ -1460,9 +1460,8 @@ The defects.
   2026-11-05, [number-format.test.ts](src/lib/presentation/utils/number-format.test.ts).
 - ~~**M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses one.**~~
   Closed 2026-11-04 in [business/AGENTS.md](src/lib/business/AGENTS.md) itself.
-- **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**
-  `carryCount={0}` and `oncarry={() => {}}` for an action the Lab does not
-  offer, where docs/design.md has "an action is present when its callback is".
+- ~~**M124 — `/energy` hands `DayActions` a required no-op.**~~ Fixed
+  2026-11-05, [lab-plan.e2e.ts](e2e/lab-plan.e2e.ts).
 - ~~**M125 — the drain-ranking card names the deferred 🪫 from the arrival
   read.**~~ Raised by A12 and fixed 2026-11-04,
   [drain-rating.e2e.ts](e2e/drain-rating.e2e.ts).

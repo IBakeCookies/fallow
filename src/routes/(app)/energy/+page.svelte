@@ -239,8 +239,6 @@
 				onimportdate={(d) => session.importFromDate(d)}
 				onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
 				ondeleteroutine={(id) => session.deleteRoutine(id)}
-				carryCount={0}
-				oncarry={() => {}}
 			/>
 		{/key}
 	</div>
