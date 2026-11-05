@@ -13,6 +13,7 @@
 			endPhys: 0.71,
 			workHours: 5.25,
 			valueVsClassic: 8,
+			locale: 'en-US',
 		},
 	});
 </script>
@@ -42,8 +43,8 @@
 		valueVsClassic: -6,
 	}}
 	play={async ({ canvas }) => {
-		// Losing to the classic plan is the other reading: warning ink, minus sign
-		await expect(canvas.getByText('-6%')).toHaveClass('text-warning');
+		// Losing to the classic plan is the other reading: warning ink, U+2212
+		await expect(canvas.getByText('\u22126%')).toHaveClass('text-warning');
 	}}
 />
 

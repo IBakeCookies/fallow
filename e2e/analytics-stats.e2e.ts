@@ -272,7 +272,7 @@ test('a completion rate below the previous range reads its drop in danger ink', 
 	await seedRange(page);
 	await page.goto('/analytics');
 
-	await expect(statTile(page, 'Avg completion rate').getByText(/^-\d+%$/)).toHaveClass(
+	await expect(statTile(page, 'Avg completion rate').getByText(/^\u2212\d+%$/)).toHaveClass(
 		/\btext-danger\b/,
 	);
 });
