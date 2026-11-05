@@ -1,0 +1,213 @@
+[
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 },
+			{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 8, "enjoyment": 4 }
+		]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9, "importance": "low" },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 8, "enjoyment": 4 }
+		]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9, "importance": "low" },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 8, "enjoyment": 4 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 }]
+	},
+	{
+		"availableHours": 1,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 }]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 },
+			{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 1,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9 }]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 },
+			{ "physicalDifficulty": 2, "mentalDifficulty": 5, "enjoyment": 9 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 8, "enjoyment": 4 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 8, "enjoyment": 4 }
+		]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7, "importance": "low" },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4, "importance": "high" },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 3,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 9, "mentalDifficulty": 2, "enjoyment": 6 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4, "importance": "high" },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7, "importance": "low" },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6, "importance": "low" }
+		]
+	},
+	{
+		"availableHours": 1,
+		"switchCost": 0.25,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 }]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 0, "mentalDifficulty": 5, "enjoyment": 4 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"cognitivePool": 6,
+		"physicalPool": 4,
+		"tasks": [
+			{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 4 },
+			{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 6 }
+		]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 4 }]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 4 }]
+	},
+	{
+		"availableHours": 0.5,
+		"switchCost": 0.25,
+		"tasks": [{ "physicalDifficulty": 1, "mentalDifficulty": 4, "enjoyment": 7 }]
+	},
+	{
+		"availableHours": 2,
+		"switchCost": 0.25,
+		"tasks": [{ "physicalDifficulty": 0, "mentalDifficulty": 4, "enjoyment": 4 }]
+	}
+]
