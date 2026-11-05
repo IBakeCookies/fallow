@@ -182,6 +182,88 @@
 />
 
 <Story
+	name="Fractional figures with a decimal comma"
+	args={{
+		locale: 'de-DE',
+		availableHours: 7.5,
+		cognitivePool: 6.5,
+		physicalPool: 3.5,
+		fittedCognitivePool: 4.4,
+		fittedPhysicalPool: 2.6,
+	}}
+	play={async ({ canvas }) => {
+		/* A German reader reads the Day Setup bar's budget, mind and body figures and
+		   both "Use fitted X h" offers with a decimal comma ("7,5h budget", "Use fitted
+		   4,4 h"), as the planned and free hours beside them already do; and a budget
+		   the advice card's trim lever set prints at most two digits ("6.42h budget").
+
+		   Tests: the "Fractional figures with a decimal comma" and "Budget from the
+		   trim lever" stories in day-constraints-bar.stories.svelte.
+		   Pins: Day Constraints Bar "Collapsed" ("6h budget", "8h mind", "4h body":
+		   whole hours stay unpadded), "With a fitted offer" ("Use fitted 4.4 h"),
+		   "With a decimal comma", "Open", "Off-quarter budget", "Pool already at the
+		   fit"; day-constraints-bar.svelte.spec.ts; plan-advice-descriptor.test.ts
+		   (the advice card's hours keep their spelling when `formatHours` moves).
+		   Out of scope:
+		   - `NumberInput`'s value: the field shows the trim lever's budget unrounded.
+		     Not prose, the line M129 drew.
+		   - Rounding the lever's hours: unrounded on purpose (plan-advice.ts, the
+		     `trimmed` comment); only the label rounds.
+		   - tag-hours-card.svelte's one-digit `hours` and /analytics' bare
+		     `toLocaleString`: other digit counts, already localized.
+		   - The per-switch minutes: already a whole number.
+		   Read before building:
+		   - src/lib/presentation/utils/plan-advice-descriptor.ts: `formatHours`, the
+		     unpadded two-digit spelling; its docblock says why not `formatDecimals`.
+		   - src/lib/presentation/utils/number-format.ts: where it moves.
+		   - src/lib/presentation/AGENTS.md: a public export joins presentation utils.
+		   - src/routes/(app)/+page.svelte: `onapplybudget` sets
+		     `session.availableHours` to the lever's hours as they are.
+		   Decisions:
+		   - `formatHours(hours, locale)` moves from plan-advice-descriptor.ts to
+		     number-format.ts as an export, unchanged, and the bar prints all five
+		     figures with it. Rejected `formatDecimals(…, 2)`, because it pads: "6h
+		     budget" would read "6.00h". Rejected a `toLocaleString` call in the
+		     component, because it would be a second copy of `formatHours` (R3).
+		     Rejected a digits parameter, because both callers pass 2.
+		   - Two digits for all five: the budget steps in quarters and the trim lever
+		     leaves it off them; the pools step in halves; `offerFittedPools` rounds a
+		     fit to a tenth, so two never cuts an offer.
+		   - The trim lever's unrounded budget was not in M130 as raised; folded in
+		     because the same formatter fixes it, at the user's call.
+		   Roadmap: M130 */
+		const header = canvas.getByText('Day Setup').closest('summary')!;
+		await expect(header).toHaveTextContent(/7,5h\s*budget/);
+		await expect(header).toHaveTextContent(/6,5h\s*mind/);
+		await expect(header).toHaveTextContent(/3,5h\s*body/);
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Use fitted 4,4 h',
+			}),
+		).toBeVisible();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Use fitted 2,6 h',
+			}),
+		).toBeVisible();
+	}}
+/>
+
+<Story
+	name="Budget from the trim lever"
+	args={{
+		// What the advice card's trim lever applies: the budget less the slack, unrounded.
+		availableHours: 6.416666666666667,
+	}}
+	play={async ({ canvas }) => {
+		const header = canvas.getByText('Day Setup').closest('summary')!;
+		await expect(header).toHaveTextContent(/6\.42h\s*budget/);
+	}}
+/>
+
+<Story
 	name="Collapsed"
 	args={{
 		isOpen: false,
