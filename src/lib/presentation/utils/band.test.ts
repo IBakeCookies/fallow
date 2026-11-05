@@ -7,9 +7,11 @@ import {
 	bandLabel,
 	energyBalanceReading,
 	getBandBiggerBetter,
+	getBandCompletionRateDelta,
 	getBandDeepWork,
 	getBandFlowReached,
 	getBandSmallerBetter,
+	getBandValueVsClassic,
 	isOutOfBand,
 	type Band,
 } from '$lib/presentation/utils/band';
@@ -151,6 +153,25 @@ describe('band policy', () => {
 
 		// The two the word cannot tell apart, which is the whole reason for the share.
 		expect(energyBalanceReading(100)).not.toBe(energyBalanceReading(61));
+	});
+
+	// A sign-less "0%" in green reads as a gain, so a tie is neither side. A loss
+	// keeps each metric's own severity.
+	it.each<[number, Band]>([
+		[1, 'success'],
+		[0, 'neutral'],
+		[-1, 'critical'],
+	])('bands a completion-rate delta of %s as %s', (delta, band) => {
+		expect(getBandCompletionRateDelta(delta)).toBe(band);
+	});
+
+	it.each<[number, Band]>([
+		[1, 'success'],
+		[0, 'neutral'],
+		[-0, 'neutral'],
+		[-1, 'warning'],
+	])('bands a vs-classic of %s as %s', (valueVsClassic, band) => {
+		expect(getBandValueVsClassic(valueVsClassic)).toBe(band);
 	});
 
 	// A missing entry would render `class="undefined"` — a value with no colour,

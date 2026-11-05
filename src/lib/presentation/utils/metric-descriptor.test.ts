@@ -101,7 +101,7 @@ const remainingDay = (capacity: RemainingDay['capacity']) =>
 	}) as RemainingDay;
 
 function reading(metrics: DailyMetrics, label: string, remainingDay: RemainingDay | null = null) {
-	const row = buildMetrics(metrics, pools, remainingDay).find(
+	const row = buildMetrics(metrics, pools, remainingDay, 'en-US').find(
 		(candidate) => candidate.label === label,
 	);
 
@@ -116,7 +116,7 @@ describe('buildMetrics', () => {
 	// that does not exist. A screen of red zeroes on first open is what makes every
 	// later warning easy to ignore.
 	it('shows no numbers at all, and no judgement, on an empty day', () => {
-		const rows = buildMetrics(dailyMetrics(), pools);
+		const rows = buildMetrics(dailyMetrics(), pools, null, 'en-US');
 
 		// The shipped shape, pinned so a 25th reading fails here rather than silently
 		// rotting the docs that count these rows.
@@ -533,6 +533,24 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe(band);
 	});
 
+	it("prints Fallow Gain in the reader's locale", () => {
+		const row = buildMetrics(
+			dailyMetrics({
+				...plannedDay,
+				zenithGain: {
+					optimized: 0,
+					naive: 0,
+					gainPercent: 12.3,
+				},
+			}),
+			pools,
+			null,
+			'de-DE',
+		).find((candidate) => candidate.label === m.metric_zenith_gain());
+
+		expect(row?.value).toBe('+12,3%');
+	});
+
 	it.each<[number, Band]>([
 		[1, 'success'],
 		[0, 'neutral'],
@@ -615,6 +633,8 @@ describe('buildMetrics', () => {
 				budgetHours: 0,
 			}),
 			pools,
+			null,
+			'en-US',
 		);
 
 		const gatedOut = rows.filter((candidate) => candidate.value === m.na_value());
@@ -627,7 +647,7 @@ describe('buildMetrics', () => {
 
 		// The control: with the budget back, the same headline readings do carry one,
 		// so the assertion above is the gate's doing and not a track nobody emits.
-		const funded = buildMetrics(dailyMetrics(plannedDay), pools);
+		const funded = buildMetrics(dailyMetrics(plannedDay), pools, null, 'en-US');
 
 		expect(funded.filter((row) => row.headline && row.track)).toHaveLength(4);
 	});
