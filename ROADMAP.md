@@ -1332,15 +1332,9 @@ runner-up.
   `energy-lab-store.test-utils.svelte.ts` re-spells the key, so its spec checks
   a copy. `destinationKeyFor`'s doc names "the two stores that hold one" as the
   design: reopen only if that ordering bites.
-- **A9 — the tomorrow moves stash their undo instead of returning it — raised
-  2026-10-01.** Both moves answer whether they moved and park the way back in
-  `undoCarry`, so `carry-with-undo.ts` must read the count, await the move and
-  read the stash straight away; `removeTask`, `deleteFlowLog`, `clearFlowLog`,
-  `deleteDrainLog` and `deleteRestLog` each return their undo, and its presence
-  is the answer. This contradicts business/AGENTS.md's "A task moves between
-  days only via the two tomorrow moves" ("…since both return whether they
-  moved"), which is worth reopening because that boolean's one reader uses it
-  only to decide whether to read the stash.
+- ~~**A9 — the tomorrow moves stash their undo instead of returning it.**~~
+  Fixed 2026-11-05, [carry-unfinished.e2e.ts](e2e/carry-unfinished.e2e.ts) and
+  [plan-advice.e2e.ts](e2e/plan-advice.e2e.ts).
 
 ## Findings from the 2026-10-02 branch review
 
