@@ -770,10 +770,6 @@ export class SessionStore {
 	get carryableCount(): number {
 		return this.#carryableTasks.length;
 	}
-	/** The way back from the last carry, for as long as its toast lives. */
-	get undoCarry() {
-		return this.#undoCarry;
-	}
 	get isLoading() {
 		return this.#isLoading;
 	}
@@ -994,10 +990,6 @@ export class SessionStore {
 	// drop the first's task. Not $state — nothing renders it.
 	#moving = false;
 
-	// Stashed rather than returned: the moves answer whether they moved, and the
-	// control reads that. Not $state — nothing renders it.
-	#undoCarry: (() => Promise<void>) | null = null;
-
 	// Definition and provenance only: a fresh id in the destination day's id space
 	// (observation joins are per-date, so the old id keeps its ⚡ and 🪫 here — the
 	// measurements stay with the day that took them) and no `mustDoToday`, a
@@ -1033,27 +1025,27 @@ export class SessionStore {
 	 * them (business/AGENTS.md). The destination write is a read-modify-write
 	 * against tomorrow's stored session. Ordered so the failure mode is a visible
 	 * duplicate, never a vanished task: the local drop (persisted by auto-save)
-	 * happens only after the destination write lands. Stashes its way back in
-	 * `undoCarry`, as the carry does — the lever's toast reads it.
+	 * happens only after the destination write lands. Returns its way back, as the
+	 * carry does — the lever's toast runs it.
 	 */
-	async moveTaskToTomorrow(id: number): Promise<boolean> {
-		if (!this.#canEditPlan) return false;
+	async moveTaskToTomorrow(id: number): Promise<(() => Promise<void>) | undefined> {
+		if (!this.#canEditPlan) return undefined;
 
 		// A past day's tomorrow is another finished day.
-		if (this.#isViewingPast) return false;
+		if (this.#isViewingPast) return undefined;
 
 		// Refused rather than merely unpersisted: `#persistSession` would drop the
 		// destination write and this would still report a move, and drop the task.
-		if (this.#isShowingDemo) return false;
+		if (this.#isShowingDemo) return undefined;
 
-		if (this.#moving) return false;
+		if (this.#moving) return undefined;
 
 		// The index too: the undo puts the row back where it was, as `removeTask` does.
 		const index = this.#tasks.findIndex((t) => t.id === id);
 		const task = this.#tasks[index];
 
 		// A completed task IS history: it was worked here, so there is nothing to send on.
-		if (!task || task.completed || isPinned(task)) return false;
+		if (!task || task.completed || isPinned(task)) return undefined;
 
 		this.#moving = true;
 
@@ -1073,14 +1065,12 @@ export class SessionStore {
 
 			const restored = $state.snapshot(task);
 
-			this.#undoCarry = () =>
+			return () =>
 				this.#undoCarryOf(date, tomorrow, [moved.id], !exists, (tasks) => [
 					...tasks.slice(0, index),
 					restored,
 					...tasks.slice(index),
 				]);
-
-			return true;
 		} catch (e) {
 			logError('Failed to move task to tomorrow', e, {
 				date: this.#selectedDate,
@@ -1088,7 +1078,7 @@ export class SessionStore {
 
 			this.#reporter.report('save-failed');
 
-			return false;
+			return undefined;
 		} finally {
 			this.#moving = false;
 		}
@@ -1100,13 +1090,13 @@ export class SessionStore {
 	 * refuses every call after the first. A COPY: the day it left keeps its rows,
 	 * which is what stops the count offering them again (`#carryableTasks`).
 	 */
-	async carryUnfinishedToTomorrow(): Promise<boolean> {
-		if (this.#moving) return false;
+	async carryUnfinishedToTomorrow(): Promise<(() => Promise<void>) | undefined> {
+		if (this.#moving) return undefined;
 
 		// Empty under every guard the single move checks, so this is those guards too.
 		const tasks = this.#carryableTasks;
 
-		if (tasks.length === 0) return false;
+		if (tasks.length === 0) return undefined;
 
 		this.#moving = true;
 
@@ -1127,15 +1117,13 @@ export class SessionStore {
 			// is a second copy.
 			this.#holdDestination(written, this.destinationKeyFor(tomorrow));
 
-			this.#undoCarry = () =>
+			return () =>
 				this.#undoCarryOf(
 					date,
 					tomorrow,
 					carried.map((t) => t.id),
 					!exists,
 				);
-
-			return true;
 		} catch (e) {
 			logError('Failed to carry unfinished tasks to tomorrow', e, {
 				date: this.#selectedDate,
@@ -1143,7 +1131,7 @@ export class SessionStore {
 
 			this.#reporter.report('save-failed');
 
-			return false;
+			return undefined;
 		} finally {
 			this.#moving = false;
 		}

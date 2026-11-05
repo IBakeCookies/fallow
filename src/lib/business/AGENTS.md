@@ -596,9 +596,9 @@ hard-coded to `selectedDate + 1` — neither caller means anything else (YAGNI) 
 counterfactual: only the button commits.
 
 `carryUnfinishedToTomorrow` moves every task `carryableCount` counts, in ONE destination write (a loop over
-the single move hits its own latch). Both moves stash their way back in `undoCarry` for the page's toast,
-since both return whether they moved: it removes the copies from tomorrow — deleting a destination the move
-CREATED and nothing else has reached, or its prefill budget would stand as a declaration. Only the single
+the single move hits its own latch). Both moves return their way back for the page's toast, as `deleteFlowLog`
+does, or nothing where they did not move; the way back removes the copies from tomorrow — deleting a
+destination the move CREATED and nothing else has reached, or its prefill budget would stand as a declaration. Only the single
 move has a source half (`#undoCarryOf`'s optional fold), and **each lands on the day the undo NAMES**: the
 source in `#tasks` while it is the loaded day, in its own record (`#rewriteDay`) otherwise; the destination
 in its record always, and in `#tasks` too when tomorrow is on screen — a guard on the viewed day once made

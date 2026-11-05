@@ -924,7 +924,7 @@ describe('SessionStore persistence', () => {
 		vi.clearAllMocks();
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
-		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(id)).toBeTypeOf('function');
 
 		// The row LEAVES. The carry records an unfinished day, so its row stays marked;
 		// the advisor's move edits a day still being planned, and has nothing to record.
@@ -989,7 +989,7 @@ describe('SessionStore persistence', () => {
 
 		useFakeTimers();
 
-		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(id)).toBeTypeOf('function');
 
 		const write = updateSessionMock.mock.calls[0][0];
 		expect(write.tasks.map((t) => t.title)).toEqual(['Migrate the database', 'already planned']);
@@ -1018,7 +1018,7 @@ describe('SessionStore persistence', () => {
 		useFakeTimers();
 		updateSessionMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(false);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeUndefined();
 		expect(store.tasks).toHaveLength(1);
 		expect(status.error).toBe('save-failed');
 	});
@@ -1044,7 +1044,7 @@ describe('SessionStore persistence', () => {
 		useFakeTimers();
 		updateSessionMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(false);
+		expect(await store.carryUnfinishedToTomorrow()).toBeUndefined();
 		expect(store.tasks).toHaveLength(2);
 		expect(status.error).toBe('save-failed');
 	});
@@ -1067,7 +1067,7 @@ describe('SessionStore persistence', () => {
 		expect(store.carryableCount).toBe(3);
 		useFakeTimers(); // freeze the auto-save so only the carry writes
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		expect(await store.carryUnfinishedToTomorrow()).toBeTypeOf('function');
 		expect(store.tasks).toHaveLength(3);
 		expect(store.carryableCount).toBe(0);
 
@@ -1093,7 +1093,7 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		expect(await store.carryUnfinishedToTomorrow()).toBeTypeOf('function');
 
 		flushSync();
 
@@ -1116,7 +1116,7 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		expect(store.tasks.map((t) => t.title)).toEqual([]);
 	});
@@ -1141,14 +1141,16 @@ describe('SessionStore persistence', () => {
 
 		useFakeTimers();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[1].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[1].id);
+
+		expect(undo).toBeTypeOf('function');
 
 		// Tomorrow now holds what the move wrote, so the undo can read it back.
 		readSessionByDateMock.mockImplementation(async (date) =>
 			date === tomorrow ? updateSessionMock.mock.calls[0][0] : null,
 		);
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(store.tasks.map((t) => t.title)).toEqual(['first', 'second', 'third']);
 	});
@@ -1171,7 +1173,9 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		const undo = await store.carryUnfinishedToTomorrow();
+
+		expect(undo).toBeTypeOf('function');
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
 
 		// Tomorrow now holds what the carry wrote.
@@ -1179,7 +1183,7 @@ describe('SessionStore persistence', () => {
 			date === tomorrow ? updateSessionMock.mock.calls[0][0] : null,
 		);
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(deleteSessionMock).toHaveBeenCalledWith(tomorrow);
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
@@ -1219,13 +1223,15 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		const undo = await store.carryUnfinishedToTomorrow();
+
+		expect(undo).toBeTypeOf('function');
 
 		const carried = updateSessionMock.mock.calls[0][0];
 		expect(carried.tasks.map((t) => t.title)).toEqual(['ship it', 'Dentist']);
 		readSessionByDateMock.mockImplementation(async (date) => (date === tomorrow ? carried : null));
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(deleteSessionMock).not.toHaveBeenCalled();
 
@@ -1254,14 +1260,16 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[0].id);
+
+		expect(undo).toBeTypeOf('function');
 		expect(store.tasks).toHaveLength(0);
 
 		readSessionByDateMock.mockImplementation(async (date) =>
 			date === tomorrow ? updateSessionMock.mock.calls[0][0] : null,
 		);
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(deleteSessionMock).toHaveBeenCalledWith(tomorrow);
 		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
@@ -1303,7 +1311,9 @@ describe('SessionStore persistence', () => {
 		await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 		vi.useRealTimers();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[0].id);
+
+		expect(undo).toBeTypeOf('function');
 
 		flushSync();
 
@@ -1311,7 +1321,7 @@ describe('SessionStore persistence', () => {
 		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
 		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
 		expect(stored.get(tomorrow)).toBeUndefined();
@@ -1347,7 +1357,9 @@ describe('SessionStore persistence', () => {
 
 		// No timer advanced: nothing has been written for today, which is the whole case.
 		expect(stored.has(today)).toBe(false);
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[0].id);
+
+		expect(undo).toBeTypeOf('function');
 
 		flushSync();
 
@@ -1355,7 +1367,7 @@ describe('SessionStore persistence', () => {
 		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
 		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
 	});
@@ -1388,14 +1400,16 @@ describe('SessionStore persistence', () => {
 
 		flushSync();
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		const undo = await store.carryUnfinishedToTomorrow();
+
+		expect(undo).toBeTypeOf('function');
 
 		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
 		await vi.waitFor(() => expect(store.loadedDate).toBe(tomorrow));
 		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
 
 		useFakeTimers();
-		await store.undoCarry!();
+		await undo!();
 		flushSync();
 
 		expect(store.tasks).toEqual([]);
@@ -1431,7 +1445,9 @@ describe('SessionStore persistence', () => {
 
 		flushSync();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[0].id);
+
+		expect(undo).toBeTypeOf('function');
 
 		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
 		await vi.waitFor(() => expect(store.loadedDate).toBe(tomorrow));
@@ -1442,7 +1458,7 @@ describe('SessionStore persistence', () => {
 			return stored.get(date) ?? null;
 		});
 
-		await store.undoCarry!();
+		await undo!();
 		flushSync();
 
 		expect(status.error).toBe('save-failed');
@@ -1619,7 +1635,7 @@ describe('SessionStore persistence', () => {
 		vi.clearAllMocks();
 
 		for (const task of store.tasks) {
-			expect(await store.moveTaskToTomorrow(task.id)).toBe(false);
+			expect(await store.moveTaskToTomorrow(task.id)).toBeUndefined();
 		}
 
 		expect(store.tasks).toHaveLength(2);
@@ -1647,7 +1663,7 @@ describe('SessionStore persistence', () => {
 		const lastWeek = addDays(toISODate(), -7);
 		const store = await viewingStored(lastWeek);
 
-		expect(await store.moveTaskToTomorrow(3)).toBe(false);
+		expect(await store.moveTaskToTomorrow(3)).toBeUndefined();
 		expect(store.tasks).toHaveLength(1);
 
 		expect(updateSessionMock).not.toHaveBeenCalledWith(
@@ -2031,7 +2047,7 @@ describe('SessionStore budget prefill', () => {
 		const id = store.tasks[0].id;
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
-		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(id)).toBeTypeOf('function');
 
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			date: addDays(today, 1),
@@ -2064,7 +2080,7 @@ describe('SessionStore budget prefill', () => {
 		flushSync();
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			availableHours: 3,
@@ -2265,7 +2281,7 @@ describe('SessionStore constraint carry-over', () => {
 		flushSync();
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			date: addDays(today, 1),
@@ -2361,7 +2377,7 @@ describe('SessionStore constraint carry-over', () => {
 		useFakeTimers(); // freeze the auto-save so only the move writes
 		storeLegacyDay();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		const written = updateSessionMock.mock.calls[0][0];
 
@@ -2401,7 +2417,7 @@ describe('SessionStore constraint carry-over', () => {
 		flushSync();
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			date: tomorrow,
@@ -2469,14 +2485,16 @@ describe('SessionStore constraint carry-over', () => {
 
 		await vi.waitFor(() => expect(store.tasks).toHaveLength(1));
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		const undo = await store.moveTaskToTomorrow(store.tasks[0].id);
+
+		expect(undo).toBeTypeOf('function');
 		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
 
 		flushSync();
 		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
 		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
 		expect(stored.get(today)).toEqual(expectRewriteOf(buildFullDay(today)));
@@ -2499,11 +2517,13 @@ describe('SessionStore constraint carry-over', () => {
 		flushSync();
 		useFakeTimers(); // freeze the auto-save so only the carry writes
 
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+		const undo = await store.carryUnfinishedToTomorrow();
+
+		expect(undo).toBeTypeOf('function');
 		expect(stored.get(tomorrow)?.tasks.map((t) => t.title)).toEqual(['ship it', 'Dentist']);
 		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
 
-		await store.undoCarry!();
+		await undo!();
 
 		expect(stored.get(tomorrow)?.tasks.map((t) => t.title)).toEqual(['Dentist']);
 		expect(stored.get(tomorrow)).toEqual(expectRewriteOf(buildFullDay(tomorrow)));
@@ -2680,7 +2700,7 @@ describe('SessionStore task tags', () => {
 		flushSync();
 		useFakeTimers();
 
-		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBeTypeOf('function');
 
 		expect(updateSessionMock.mock.calls[0][0].tasks[0].tags).toEqual(['exercise']);
 	});
