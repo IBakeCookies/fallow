@@ -1456,12 +1456,8 @@ The defects.
 - ~~**M121 — "the whole banding policy in one module" is false.**~~ Fixed
   2026-11-05 with the recovery ratio and the Lab's plan-summary tile too,
   [metric-descriptor.test.ts](src/lib/presentation/utils/metric-descriptor.test.ts).
-- **M122 — a signed percent is spelled three ways and has drifted — raised
-  2026-11-04.** `/analytics`' rate delta prints "+0%" and a hyphen-minus; Zenith
-  Gain in `metric-descriptor.ts` and plan-advice's `signedPlanValue` print "0%"
-  and "−" (R3). Widened by M121: `plan-summary.svelte` is a fourth spelling
-  ("0%", hyphen-minus), and its band reads a tie neutral and a loss warning
-  where `getBandCompletionRateDelta` reads them success and critical.
+- ~~**M122 — a signed percent is spelled three ways and has drifted.**~~ Fixed
+  2026-11-05, [number-format.test.ts](src/lib/presentation/utils/number-format.test.ts).
 - ~~**M123 — business/AGENTS.md's list of `#isShowingDemo` readers misses one.**~~
   Closed 2026-11-04 in [business/AGENTS.md](src/lib/business/AGENTS.md) itself.
 - **M124 — `/energy` hands `DayActions` a required no-op — raised 2026-11-04.**

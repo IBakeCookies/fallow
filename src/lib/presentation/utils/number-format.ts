@@ -11,3 +11,18 @@ export function formatDecimals(value: number, digits: number, locale: string): s
 		maximumFractionDigits: digits,
 	});
 }
+
+/**
+ * A change in per cent, signed both ways: "+3.1%" and "−6.2%" have to be told
+ * apart at a glance, and a bare "6.2%" reads as a gain. A tie, -0 included,
+ * takes no sign.
+ */
+export function formatSignedPercent(value: number, locale: string): string {
+	const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+
+	const magnitude = Math.abs(value).toLocaleString(locale, {
+		maximumFractionDigits: 1,
+	});
+
+	return `${sign}${magnitude}%`;
+}

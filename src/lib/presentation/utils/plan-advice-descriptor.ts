@@ -26,7 +26,7 @@ import {
 	type Band,
 } from '$lib/presentation/utils/band';
 import { formatDuration } from '$lib/presentation/utils/duration-format';
-import { formatDecimals } from '$lib/presentation/utils/number-format';
+import { formatDecimals, formatSignedPercent } from '$lib/presentation/utils/number-format';
 
 /**
  * How many frontier options a row shows. A constant and not a parameter: the one
@@ -209,22 +209,11 @@ function formatApplyLabel(lever: AdviceLever, isUnpriced: boolean, locale: strin
  * A change in plan value, signed: "+3.1%", "−6.2%", or "N/A" when there is no
  * Σ P̄ to compare against. No unit: the column head names it, and the one tile
  * that prints it alone adds `advice_cost` itself.
- *
- * An explicit sign both ways, because "+3.1%" and "−6.2%" have to be told apart
- * at a glance and a bare "6.2%" reads as a gain. One signing for all three
- * readings priced this way — the cost column, the budget's marginal and the
- * switch cost's bracket.
  */
 function signedPlanValue(deltaPercent: number | null, locale: string): string {
 	if (deltaPercent === null) return m.na_value();
 
-	const sign = deltaPercent > 0 ? '+' : deltaPercent < 0 ? '−' : '';
-
-	const magnitude = Math.abs(deltaPercent).toLocaleString(locale, {
-		maximumFractionDigits: 1,
-	});
-
-	return `${sign}${magnitude}%`;
+	return formatSignedPercent(deltaPercent, locale);
 }
 
 function formatCost(deltaPercent: number | null, locale: string): string {
