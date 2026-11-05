@@ -94,6 +94,35 @@ test('a carried task keeps its row and its hours on the Lab', async ({ page }) =
 	await expect(page.getByText('no hours')).toHaveCount(0);
 });
 
+/* The Lab shows no slide badge, so the carry that answers one is `/`'s alone — on the
+   very day `/` offers it. */
+test('the Lab offers no carry', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: 'Carry 1 to tomorrow',
+		}),
+	).toBeVisible();
+
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	// Load sits beside the carry, so the absence below is read off a drawn row.
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: 'Load',
+		}),
+	).toBeVisible();
+
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: /Carry \d+ to tomorrow/,
+		}),
+	).toHaveCount(0);
+});
+
 // Ticking a task off is the one edit that must mark the plan without moving it: the
 // allocator never sees `completed`.
 test('ticking a task off marks its block in the plan', async ({ page }) => {
