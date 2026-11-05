@@ -60,25 +60,25 @@ retype a row, regenerate:
   §5.2      625-737  Recency weighting of the ϕ fit
   §5.1      739-848  Posterior-aware allocation
 §6          850-862  Summary of v1 → v2 changes
-§7          864-886  Known approximations and deliberate non-changes
-§8         888-2336  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      901-923  Intermittent-rest recovery correction
-  §8.2      925-947  Warm-up carryover instead of binary reset
-  §8.3      949-967  Verified consequences and a calibration question, closed
-  §8.4     969-1039  Per-task satiety — concave daily value
-  §8.5    1041-1081  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1083-1147  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1149-1352  Drain-rate calibration from end-of-session ratings
-  §8.8    1354-1389  45-minute plan granularity
-  §8.9    1391-1445  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1447-1765  Stopping-value calibration from observed stop times
-  §8.11   1767-1928  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1930-2084  The budget curve — what the day's LENGTH is worth
-  §8.13   2086-2178  Capacity from the fitted drain rate
-  §8.14   2180-2251  Per-title drain rate — which task costs more than its sl…
-  §8.15   2253-2336  Overnight carry-over — the morning level and its anchor
-§9        2338-2400  Plan-adherence reading and its verdict band
-§10       2402-2449  References
+§7          864-890  Known approximations and deliberate non-changes
+§8         892-2340  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      905-927  Intermittent-rest recovery correction
+  §8.2      929-951  Warm-up carryover instead of binary reset
+  §8.3      953-971  Verified consequences and a calibration question, closed
+  §8.4     973-1043  Per-task satiety — concave daily value
+  §8.5    1045-1085  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1087-1151  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1153-1356  Drain-rate calibration from end-of-session ratings
+  §8.8    1358-1393  45-minute plan granularity
+  §8.9    1395-1449  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1451-1769  Stopping-value calibration from observed stop times
+  §8.11   1771-1932  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1934-2088  The budget curve — what the day's LENGTH is worth
+  §8.13   2090-2182  Capacity from the fitted drain rate
+  §8.14   2184-2255  Per-title drain rate — which task costs more than its sl…
+  §8.15   2257-2340  Overnight carry-over — the morning level and its anchor
+§9        2342-2404  Plan-adherence reading and its verdict band
+§10       2406-2454  References
 ```
 
 <!-- section-index:end -->
@@ -880,10 +880,14 @@ negligible next to the subset enumeration.
   the size-bounded enumeration does not fit, and is exact everywhere else past 12.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
 - **`a = E·β` (peak monotone in effort) is kept from v1** — the article's
-  own `β²·(1 + ln E)` is monotone in `E` too — even though flow research
-  suggests an inverted-U in challenge (see references);
-  changing it alters the meaning of the difficulty slider and deserves its
-  own revision.
+  own `β²·(1 + ln E)` is monotone in `E` too. The inverted-U flow research
+  reports (see references) is in physiological arousal, which the difficulty
+  slider does not measure, so it says nothing direct about `a`'s shape in `E`.
+  No shipped fit reads that shape either: ⚡ fits ϕ, ☕ the recovery rate, 🪫
+  the drain rate α, and λ₀ (§8.10), fitted on top of the curve, absorbs at most
+  an overall scale. Changing it alters the meaning of the difficulty slider and
+  deserves its own revision; what an inverted-U `a` would move in the classic
+  plan is measured in `scripts/amplitude-shape.probe.ts`.
 
 ## 8. Energy model (`zenith-energy.ts`) — fatigue-recovery extensions
 
@@ -2417,7 +2421,8 @@ the reading to say which changed.
   Brain Research Reviews 59 — separate-systems rationale for the dual pools.
 - Peifer, C. et al. (2014). _The relation of flow-experience and
   physiological arousal under stress — Can u shape it?_ J. Experimental
-  Social Psychology — inverted-U evidence relevant to the §7 note on `a = E·β`.
+  Social Psychology — an inverted-U of flow in physiological arousal, not in
+  challenge or difficulty; the §7 note on `a = E·β` cites it for that reason.
 - Xia, T. & Frey Law, L. A. (2008). _A theoretical approach for modeling
   peripheral muscle fatigue and recovery._ J. Biomechanics 41(14) — the
   three-compartment fatigue-recovery structure behind §8's reservoir law.

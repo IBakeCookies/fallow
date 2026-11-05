@@ -586,15 +586,17 @@ Last because it is a revision and not an item: it re-prices every plan, re-score
 every stored day, and changes what a slider means.
 
 42. **`a = E·β`'s inverted-U** — §7 keeps the v1 peak amplitude monotone in
-    effort, records that flow research puts an inverted-U in challenge instead
-    (Peifer et al. 2014, §10), and says the change "deserves its own revision".
+    effort, records that the inverted-U flow research reports is in arousal,
+    which the slider does not measure (Peifer et al. 2014, §10), and says the
+    change "deserves its own revision".
     It is the last untouched modelling direction in the classic model, and the
-    consequence of leaving it is stated rather than hidden: peak height grows
-    without bound in difficulty, so the hardest thing a user declares is always
-    their most valuable hour. Any attempt needs its own before/after instrument
-    over real declared days — the figures the suite pins today were all read at
+    consequence of leaving it is stated rather than hidden: `a` grows with
+    difficulty, so the hardest task the sliders reach is the most valuable one.
+    Any attempt needs its own before/after instrument over real declared days — the figures the suite pins today were all read at
     the monotone `a`, so a swap that keeps them green has not been measured, it
-    has been fitted to.
+    has been fitted to. That instrument is
+    [`scripts/amplitude-shape.probe.ts`](scripts/amplitude-shape.probe.ts)
+    (2026-11-05); the swap is still undecided.
 
 ## Considered on 2026-08-04 and not proposed
 
