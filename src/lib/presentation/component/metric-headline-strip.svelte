@@ -7,7 +7,7 @@
 	import MetricBandText from '$lib/presentation/component/metric-band-text.svelte';
 	import MetricLabel from '$lib/presentation/component/metric-label.svelte';
 	import MetricTrack from '$lib/presentation/component/metric-track.svelte';
-	import { BAND_TEXT_CLASS } from '$lib/presentation/utils/band';
+	import { BAND_BADGE_CLASS, BAND_TEXT_CLASS, getBandMomentum } from '$lib/presentation/utils/band';
 
 	interface Props {
 		metrics: Metric[];
@@ -22,9 +22,8 @@
 	// come before the setup that produces it; the rest read under the plan.
 	const headline = $derived(metrics.filter((item) => item.headline));
 
-	// Only the sign is rendered, by both the badge's fill and its wording. `-0`
-	// (Math.round of a small negative) compares equal to 0, so it reads as stable.
-	const trend = $derived(momentum === null ? null : Math.sign(momentum));
+	// The fill and the wording read the one band, so they cannot disagree.
+	const band = $derived(getBandMomentum(momentum));
 </script>
 
 <div class={cn('card-shell p-box-md sm:p-box-xl', className)}>
@@ -45,20 +44,16 @@
 						{#snippet child({ props })}
 							<Badge
 								{...props}
-								variant={trend ? 'default' : 'outline'}
-								class={trend === 1
-									? 'bg-success-tint text-success-strong'
-									: trend === -1
-										? 'bg-warning-tint text-warning-strong'
-										: ''}
+								variant={band === 'neutral' ? 'outline' : 'default'}
+								class={BAND_BADGE_CLASS[band]}
 							>
 								{m.momentum_badge({
 									state:
-										trend === null
+										momentum === null
 											? m.na_value()
-											: trend === 1
+											: band === 'success'
 												? m.momentum_upward()
-												: trend === -1
+												: band === 'warning'
 													? m.momentum_reset_required()
 													: m.momentum_stable(),
 								})}

@@ -49,6 +49,14 @@ export const BAND_BAR_CLASS: Record<Band, string> = {
 	critical: 'bg-danger',
 };
 
+/** Badge fill per band: the tint and its `-strong` ink. Neutral is empty; the caller picks the outline variant. */
+export const BAND_BADGE_CLASS: Record<Band, string> = {
+	success: 'bg-success-tint text-success-strong',
+	neutral: '',
+	warning: 'bg-warning-tint text-warning-strong',
+	critical: 'bg-danger-tint text-danger-strong',
+};
+
 /**
  * The band in words, for the text a screen reader hears where colour is
  * otherwise the only carrier (WCAG 1.4.1). Read per call rather than baked into
@@ -153,6 +161,17 @@ export function getBandValueVsClassic(valueVsClassic: number): Band {
 	if (valueVsClassic > 0) return 'success';
 
 	if (valueVsClassic < 0) return 'warning';
+
+	return 'neutral';
+}
+
+/** `null` (a day with no tasks) and `-0` (Math.round of a small loss) are both neutral. */
+export function getBandMomentum(momentum: number | null): Band {
+	if (momentum === null) return 'neutral';
+
+	if (momentum > 0) return 'success';
+
+	if (momentum < 0) return 'warning';
 
 	return 'neutral';
 }
