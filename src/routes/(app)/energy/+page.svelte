@@ -319,6 +319,7 @@
 			ondrainedit={(log) => editors.editDrainLog(task.id, log)}
 			ondraindelete={(recordId) => editors.deleteDrainLog(task.id, recordId)}
 			onupdate={(edit) => session.updateTask(task.id, edit)}
+			locale={getDateLocale()}
 		/>
 	{/each}
 {/snippet}

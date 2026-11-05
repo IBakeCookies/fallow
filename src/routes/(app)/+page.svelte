@@ -80,7 +80,6 @@
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay, getDateLocale()));
 	// The two inputs every headline reading is gated on in `buildMetrics`.
 	const hasPlan = $derived(daily.totalTasks > 0 && daily.budgetHours > 0);
-	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
 	const timeline = $derived(
 		buildDayTimeline({
 			suggestedTasks: daily.suggestedTasks,
@@ -196,6 +195,7 @@
 		hasNextTaskRoom={plan.hasNextTaskRoom}
 		onnexttasks={() => plan.computeNextTasks()}
 		onpicknexttask={pick}
+		locale={getDateLocale()}
 	/>
 {/snippet}
 
@@ -242,7 +242,8 @@
 			bind:physicalPool={session.physicalPool}
 			fittedCognitivePool={plan.fittedPools.cognitiveHours}
 			fittedPhysicalPool={plan.fittedPools.physicalHours}
-			{remainingSuggestedHours}
+			remainingSuggestedHours={daily.remainingSuggestedHours}
+			locale={getDateLocale()}
 			planSlackHours={daily.planSlackHours}
 			planSwitchHours={daily.planSwitchHours}
 			isOpen={session.loadedDate !== null && session.availableHours <= 0}
@@ -256,6 +257,7 @@
 	<div class="space-y-grid-xl">
 		<div class="space-y-grid-lg">
 			<TaskList
+				locale={getDateLocale()}
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
 				viewedDate={selectedDate}

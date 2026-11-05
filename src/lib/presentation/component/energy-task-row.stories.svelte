@@ -12,6 +12,7 @@
 		render: template,
 		tags: ['autodocs'],
 		args: {
+			locale: 'en-US',
 			title: 'write the calibration section',
 			completed: false,
 			physicalDifficulty: 2,

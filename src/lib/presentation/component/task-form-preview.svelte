@@ -20,6 +20,7 @@
 		getBandFlowReached,
 	} from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { describeDraftCost } from '$lib/presentation/utils/draft-cost-descriptor';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 
@@ -32,6 +33,7 @@
 		/** Runs the ranking. Called once, on mount — see below. */
 		onnexttasks: () => void;
 		onpicknexttask: (rating: TitleRating) => void;
+		locale: string;
 		class?: string;
 	}
 
@@ -41,6 +43,7 @@
 		hasNextTaskRoom,
 		onnexttasks,
 		onpicknexttask,
+		locale,
 		class: className,
 	}: Props = $props();
 
@@ -165,7 +168,7 @@
 		<p class="stat-line">
 			<span class="text-ty-secondary">{m.form_impact_priority()}</span>
 			<span class="font-semibold text-ty-primary tabular-nums">
-				{impact.priorityScore.toFixed(1)}
+				{formatDecimals(impact.priorityScore, 1, locale)}
 			</span>
 		</p>
 

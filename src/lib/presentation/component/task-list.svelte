@@ -80,6 +80,7 @@
 		ondrainedit: (id: number, log: Persisted<DrainObservationRecord>) => void;
 		ondraindelete: (id: number, recordId: number) => void;
 		onupdate?: (id: number, changes: TaskEdit) => void;
+		locale: string;
 		class?: string;
 	}
 
@@ -114,6 +115,7 @@
 		ondrainedit,
 		ondraindelete,
 		onupdate,
+		locale,
 		class: className,
 	}: Props = $props();
 
@@ -188,6 +190,7 @@
 			{ondrainedit}
 			{ondraindelete}
 			{onupdate}
+			{locale}
 		/>
 	{/each}
 {/snippet}

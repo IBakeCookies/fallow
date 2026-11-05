@@ -14,6 +14,7 @@
 		render: template,
 		tags: ['autodocs'],
 		args: {
+			locale: 'en-US',
 			id: 1,
 			title: 'write the calibration section',
 			physicalDifficulty: 2,
@@ -145,55 +146,7 @@
 		locale: 'de-DE',
 	}}
 	play={async ({ canvas }) => {
-		/* A German reader reads every decimal a task row, the add-task preview and the
-		   Day Setup bar print with a decimal comma ("effort 4,2", "prio 12,4",
-		   "5,25 h planned"), as the dates and readings beside them already do.
-
-		   Tests: the "With a decimal comma" story in task-item.stories.svelte,
-		   energy-task-row.stories.svelte, task-form-preview.stories.svelte and
-		   day-constraints-bar.stories.svelte.
-		   Pins: Task Item "First in run order", "Short of flow" ("effort 4.2",
-		   "prio 12.4"); Energy Task Row "Default" ("effort 4.1"); Task Form Preview
-		   "What the draft does to today" ("63.4"); Day Constraints Bar "Open"
-		   ("5.25 h planned + 0.50 h switching") and "Collapsed" ("4.00 h planned
-		   2.00 h free"). Their assertions stay as they are; only their arrange
-		   moves (below), and that move is the build's named fixture edit, not
-		   the implementer's.
-		   Out of scope:
-		   - The bar's raw decimals: the budget, mind and body figures and the two
-		     "Use fitted X h" offers print with no fixed digits. ROADMAP M130.
-		   - SVG path coordinates, CSS custom properties, `NumberInput`'s value:
-		     none of them is prose.
-		   - The copy's language: these stories render English messages around a
-		     de-DE decimal; the prop decides the decimals only.
-		   Read before building:
-		   - src/lib/presentation/AGENTS.md: five components gain a required prop.
-		   - src/lib/presentation/utils/number-format.ts: `formatDecimals(value,
-		     digits, locale)` is the one spelling.
-		   - src/lib/presentation/component/plan-summary.svelte: a required
-		     `locale: string` prop, the way this layer takes it from a route.
-		   - src/routes/(app)/+page.svelte: builds `remainingSuggestedHours` with
-		     `toFixed(2)`, and already reads `getDateLocale()`.
-		   - src/routes/(app)/energy/+page.svelte: renders `EnergyTaskRow`.
-		   - src/lib/presentation/component/task-list.svelte: renders `TaskItem`.
-		   Decisions:
-		   - `TaskItem`, `EnergyTaskRow`, `TaskFormPreview` and `DayConstraintsBar`
-		     each take a required `locale: string`, `TaskList` takes one to hand on,
-		     and the routes pass `getDateLocale()`. Each existing caller gains it:
-		     the four metas' args and task-list.stories.svelte get `locale:
-		     'en-US'`, and day-constraints-bar.svelte.spec.ts passes it too.
-		     Rejected `getDateLocale()` inside each component, as
-		     task-form-energy-preview.svelte does, because six components here take
-		     the locale from their route and a story sets a prop without mocking
-		     `page`. Rejected an 'en-US' default, because a route that forgot the
-		     prop would print English decimals with no type error.
-		   - `remainingSuggestedHours` reaches the bar as a number and the bar
-		     formats it beside slack and switching. Rejected `/` formatting it,
-		     because nothing below the route could then test it. The bar's stories
-		     pass it as '5.25' and '4.00' today and move to numbers.
-		   - Digits stay: 1 for effort and priority (MATH.md §3's printed scale),
-		     2 for the bar's hours.
-		   Roadmap: M129 */
+		// A German reader reads the row's decimals with a comma, as the dates beside them.
 		await expect(canvas.getByText('effort 4,2 · flow @ 36m · stop by 2h 15m')).toBeVisible();
 		await expect(canvas.getByText('prio 12,4')).toBeVisible();
 	}}

@@ -8,11 +8,12 @@
 		component: DayConstraintsBar,
 		tags: ['autodocs'],
 		args: {
+			locale: 'en-US',
 			availableHours: 6,
 			switchCost: 0.25,
 			cognitivePool: 8,
 			physicalPool: 4,
-			remainingSuggestedHours: '5.25',
+			remainingSuggestedHours: 5.25,
 			planSlackHours: 0,
 			planSwitchHours: 0.5,
 			fittedCognitivePool: null,
@@ -159,7 +160,7 @@
 	name="With unplanned time"
 	args={{
 		// Slack above 0.05 h adds the unplanned-time warning line
-		remainingSuggestedHours: '4.00',
+		remainingSuggestedHours: 4,
 		planSlackHours: 2,
 	}}
 />
@@ -184,7 +185,7 @@
 	name="Collapsed"
 	args={{
 		isOpen: false,
-		remainingSuggestedHours: '4.00',
+		remainingSuggestedHours: 4,
 		planSlackHours: 2,
 	}}
 	play={async ({ canvas }) => {

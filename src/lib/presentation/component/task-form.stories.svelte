@@ -802,6 +802,7 @@
 		hasNextTaskRoom={false}
 		onnexttasks={() => {}}
 		onpicknexttask={pick}
+		locale="en-US"
 	/>
 {/snippet}
 

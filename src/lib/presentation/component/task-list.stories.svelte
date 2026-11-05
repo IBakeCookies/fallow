@@ -65,6 +65,7 @@
 		component: TaskList,
 		tags: ['autodocs'],
 		args: {
+			locale: 'en-US',
 			suggestedTasks: tasks,
 			// The fixture's own day, so the default list carries no slide badge: every
 			// task in it was added on the day being viewed.

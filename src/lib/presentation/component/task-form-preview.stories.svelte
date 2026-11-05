@@ -60,6 +60,7 @@
 		component: TaskFormPreview,
 		tags: ['autodocs'],
 		args: {
+			locale: 'en-US',
 			impact,
 			nextTasks: null,
 			hasNextTaskRoom: true,
