@@ -1491,12 +1491,9 @@ use. The **M** series continues.
 Routing M128 found the same `toFixed` decimal outside `buildMetrics`, left out
 of that fix by choice. The **M** series continues.
 
-- **M129 — seven more user-visible decimals print unlocalized — raised
-  2026-11-05.** `task-item.svelte` (effort, priority score),
-  `task-form-preview.svelte` (priority score), `energy-task-row.svelte`
-  (effort), `day-constraints-bar.svelte` (slack and switching hours) and `/`'s
-  `+page.svelte` (remaining hours) each print `toFixed`, so a German reader gets
-  "1.5" where `formatDecimals` would give "1,5".
+- ~~**M129 — seven more user-visible decimals print unlocalized.**~~ Fixed
+  2026-11-05,
+  [task-item.stories.svelte](src/lib/presentation/component/task-item.stories.svelte).
 
 ## Findings from the 2026-11-05 M129 plan
 
@@ -1506,5 +1503,5 @@ digits and were left out of that fix by choice. The **M** series continues.
 - **M130 — the Day Setup bar prints five decimals raw — raised 2026-11-05.**
   `day-constraints-bar.svelte` interpolates the budget, mind and body figures
   and passes `String(fitted)` to the two "Use fitted X h" offers, so a German
-  reader gets "7.5". Once M129 lands that sits beside "5,25". `formatDecimals`
-  fixes the digit count, and these print as many as the value has.
+  reader gets "7.5" beside the bar's own "5,25". `formatDecimals` fixes the
+  digit count, and these print as many as the value has.

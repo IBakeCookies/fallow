@@ -11,6 +11,7 @@
 	import type { DayBlock } from '$lib/presentation/utils/day-timeline';
 	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
 	import { formatDuration, formatDurationBand } from '$lib/presentation/utils/duration-format';
+	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import type {
 		DrainDraft,
 		EditorDraft,
@@ -73,6 +74,7 @@
 		ondrainedit: (id: number, log: Persisted<DrainObservationRecord>) => void;
 		ondraindelete: (id: number, recordId: number) => void;
 		onupdate?: (id: number, changes: TaskEdit) => void;
+		locale: string;
 		class?: string;
 	}
 
@@ -117,6 +119,7 @@
 		ondrainedit,
 		ondraindelete,
 		onupdate,
+		locale,
 		class: className,
 	}: Props = $props();
 
@@ -219,7 +222,7 @@
 	<Tooltip.Root>
 		<Tooltip.Trigger class="cursor-help text-left">
 			{m.task_derived_values({
-				effort: trueEffort.toFixed(1),
+				effort: formatDecimals(trueEffort, 1, locale),
 				flow: formatDurationBand(flowStateTime, flowStateTimeStd),
 				stop: formatDuration(optimalStopHours),
 			})}
@@ -246,7 +249,7 @@
 			<!-- 1 dp even at .0: MATH.md §3's printed scale. -->
 			<Tooltip.Trigger class="cursor-help tabular-nums">
 				{m.task_derived_priority({
-					score: priorityScore.toFixed(1),
+					score: formatDecimals(priorityScore, 1, locale),
 				})}
 			</Tooltip.Trigger>
 			<Tooltip.Content>

@@ -3,6 +3,7 @@
 	import { cn } from '$lib/presentation/utils';
 	import { CAPACITY_POOL_MAX_HOURS } from '$lib/business/utils/capacity-pool-bounds';
 	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
+	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 
 	interface Props {
@@ -12,9 +13,10 @@
 		physicalPool: number;
 		fittedCognitivePool: number | null;
 		fittedPhysicalPool: number | null;
-		remainingSuggestedHours: string;
+		remainingSuggestedHours: number;
 		planSlackHours: number;
 		planSwitchHours: number;
+		locale: string;
 		// Set at mount and then the user's to control — the browser owns the state from
 		// there. The caller re-asks by remounting the bar (`{#key}` on the loaded day),
 		// because a live value would slam the panel shut the moment its own hours field
@@ -33,6 +35,7 @@
 		remainingSuggestedHours,
 		planSlackHours,
 		planSwitchHours,
+		locale,
 		isOpen = false,
 		class: className,
 	}: Props = $props();
@@ -87,12 +90,12 @@
 				>
 				{m.budget_figure_budget()}
 				<span class="text-ty-secondary tabular-nums"
-					>{remainingSuggestedHours} {m.unit_hour_symbol()}</span
+					>{formatDecimals(remainingSuggestedHours, 2, locale)} {m.unit_hour_symbol()}</span
 				>
 				{m.budget_figure_planned()}
 				{#if hasSlack}
 					<span class="text-warning-strong tabular-nums">
-						{planSlackHours.toFixed(2)}
+						{formatDecimals(planSlackHours, 2, locale)}
 						{m.unit_hour_symbol()}
 						{m.budget_figure_free()}
 					</span>
@@ -152,8 +155,8 @@
 				<label for="available-hours" class="text-ty-secondary">{m.budget_available_hours()}</label>
 				·
 				{m.budget_allocated({
-					planned: remainingSuggestedHours,
-					switching: planSwitchHours.toFixed(2),
+					planned: formatDecimals(remainingSuggestedHours, 2, locale),
+					switching: formatDecimals(planSwitchHours, 2, locale),
 				})}
 				{#if !hasSlack}
 					· {m.budget_fully_committed()}
@@ -162,7 +165,7 @@
 			{#if hasSlack}
 				<p class="mt-text-2xs text-xs text-warning-strong" title={m.budget_unplanned_title()}>
 					{m.budget_unplanned({
-						hours: planSlackHours.toFixed(2),
+						hours: formatDecimals(planSlackHours, 2, locale),
 					})}
 				</p>
 			{/if}

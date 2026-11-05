@@ -17,7 +17,8 @@ describe('day-constraints-bar.svelte', () => {
 			physicalPool: 3,
 			fittedCognitivePool: null,
 			fittedPhysicalPool: null,
-			remainingSuggestedHours: '3.50',
+			remainingSuggestedHours: 3.5,
+			locale: 'en-US',
 			planSlackHours: 0,
 			planSwitchHours: 0,
 		};

@@ -5,6 +5,7 @@
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import TaskRowShell from '$lib/presentation/component/task-row-shell.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import type {
 		DrainDraft,
 		EditorDraft,
@@ -53,6 +54,7 @@
 		 *  shell prop. The Lab's other control callbacks are `onchange`; this one is not
 		 *  one of them. */
 		onupdate: (edit: TaskEdit) => void;
+		locale: string;
 		class?: string;
 	}
 
@@ -86,6 +88,7 @@
 		ondrainedit,
 		ondraindelete,
 		onupdate,
+		locale,
 		class: className,
 	}: Props = $props();
 </script>
@@ -102,7 +105,7 @@
      carries no tooltip. `task_derived_tooltip` explains all three. -->
 {#snippet readings()}
 	{m.task_derived_effort({
-		effort: trueEffort.toFixed(1),
+		effort: formatDecimals(trueEffort, 1, locale),
 	})}
 {/snippet}
 
