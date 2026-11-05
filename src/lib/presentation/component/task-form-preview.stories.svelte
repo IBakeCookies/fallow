@@ -102,6 +102,16 @@
 />
 
 <Story
+	name="With a decimal comma"
+	args={{
+		locale: 'de-DE',
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('63,4')).toBeVisible();
+	}}
+/>
+
+<Story
 	name="Nothing typed yet"
 	args={{
 		impact: null,
