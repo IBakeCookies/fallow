@@ -643,6 +643,63 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe('critical');
 	});
 
+	/* The Human Capacity and Capacity Left descriptions print the binding pool in
+	   the reader's locale, as the Day Setup bar beside them already does: a German
+	   reader gets "6,5h", not "6.5h".
+
+	   Tests: the two "prints … pool in the reader's locale" tests below.
+	   Pins: "describes capacity against the pool that binds", "reads what the
+	     logged hours left of the pool they load hardest", and "keeps a whole-hour
+	     pool whole" below — en-US whole hours still read "8h".
+	   Out of scope: the file's other interpolated figures — every one is already
+	     a whole percent (`calculateHumanCapacity` rounds, `spent` is
+	     `Math.round`ed). Localizing the "h" unit.
+	   Read before building:
+	   - src/lib/presentation/utils/metric-descriptor.ts — `buildMetrics`, the
+	     `hours:` argument of `metric_human_capacity_desc` and of
+	     `metric_capacity_left_desc`; `locale` is already a parameter.
+	   - src/lib/presentation/utils/number-format.ts — `formatHours`, the bar's
+	     pool formatter (M130), the one definition of an hour figure (AGENTS.md R3).
+	   Decisions: `formatHours(…, locale)` for both, so a description and the bar
+	     print one pool alike. Rejected `formatDecimals(…, 1, locale)`, because it
+	     pads: "8.0h/day" beside the bar's "8h".
+	   Roadmap: M131 */
+	const fractionalPools = {
+		cognitiveHours: 6.5,
+		physicalHours: 3.5,
+	};
+	const cognitiveBinds = dailyMetrics({
+		...plannedDay,
+		humanCapacity: {
+			percent: 90,
+			limitType: 'cognitive',
+		},
+	});
+	const cognitiveSpent = remainingDay({
+		limitType: 'cognitive',
+		percentSpent: 40,
+	});
+
+	it("prints Human Capacity's pool in the reader's locale", () => {
+		const row = buildMetrics(cognitiveBinds, fractionalPools, null, 'de-DE').find(
+			(candidate) => candidate.label === m.metric_human_capacity(),
+		);
+
+		expect(row?.description).toContain('6,5h');
+	});
+
+	it("prints Capacity Left's pool in the reader's locale", () => {
+		const row = buildMetrics(cognitiveBinds, fractionalPools, cognitiveSpent, 'de-DE').find(
+			(candidate) => candidate.label === m.metric_capacity_left(),
+		);
+
+		expect(row?.description).toContain('6,5h');
+	});
+
+	it('keeps a whole-hour pool whole', () => {
+		expect(reading(cognitiveBinds, m.metric_human_capacity()).description).toContain('8h');
+	});
+
 	// The track is the reading's own scale, so an N/A can never keep a stale one:
 	// it is emitted through the same `gated` call that decides the value.
 	it('carries no track on a reading the day cannot answer', () => {
