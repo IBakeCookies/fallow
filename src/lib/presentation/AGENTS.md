@@ -552,16 +552,17 @@ where the day holds no log for that task yet** (`measurement-prompt.ts`, on why)
 — the button is the way back. Each editor drops what it opened on (🗑).
 
 **Both editors are open only while the PAGE holds a draft for that task** — the
-shell renders the two forms and owns neither. 🪫 has to be the page's, since a
-chip opens one over a draft the row may already hold; ⚡ is the page's too, and
-that split is what lets the two answer the row's own lifecycle: ✕ then Undo
-restores the task under its original id (`removeTask`), so a surviving draft
-re-opens while a row-local one would not. Each page keeps them in a `MeasurementEditors`
-it creates for itself (`measurement-editor.svelte.ts`), which owns every transition — open,
-save, append or correct, spend the stopped reading, drop — so neither screen spells one.
-`measurement-prompt.ts` keeps the records one shape, `completionPromptAction` is the one
-prompt policy both run, and `EnergyObservationStore.drainLogsOn(date)` is the one answer
-to "what did this task measure that day" that both screens read their chips from.
+shell renders the two forms and owns neither. 🪫 has to be the page's, since a chip opens one
+over a draft the row may already hold; ⚡ is the page's too, and that split is what lets the
+two answer the row's own lifecycle: ✕ then Undo restores the task under its original id
+(`removeTask`), so a surviving draft re-opens while a row-local one would not. Each page
+keeps them in a `MeasurementEditors` it creates for itself (`measurement-editor.svelte.ts`),
+which owns every transition — open, save, append or correct, spend the stopped reading, drop
+— so neither screen spells one. Each row is handed its readings, drafts and id-bound verbs
+as one `RowMeasurements` from `MeasurementEditors.forTask`. `measurement-prompt.ts` keeps
+the records one shape, `completionPromptAction` is the one prompt policy both run, and
+`EnergyObservationStore.drainLogsOn(date)` is the one answer to "what did this task measure
+that day" that both screens read their chips from.
 
 A draft whose row leaves the day is inert: it is keyed by a task nothing renders, and
 only a draft on the day's rows holds the stopped reading. A deleted or moved task's is
@@ -683,18 +684,17 @@ row's UPSERT a record that has since been deleted re-creates it under its own id
 the by-id path is a real `$updateFlowObservation` and not
 `$createOrUpdateFlowObservation` with the record spread back in.
 
-**The observation is the only place a ⚡ lives** —
-`SessionStore.flowMinutesOn(date)` is what the row reads, the field is gone from
-`Task`, and `sanitizeTask` reads a stored one past rather than repairing it. It
-could not be corrected before, because the badge was ALSO a `flowMinutes` field
-on the day's task and the autosave did not then reach a past day, so an amended one
-came back on the next load. Hence two callbacks on the row and not one:
-`onflowopen` is the ⚡ BUTTON (a first measurement, any day up to today) and
-`onflowedit` is the badge (a correction, any day) — a day ahead passes the
-second and withholds the first, exactly as it does for 🪫.
-`SessionStore.clearFlowLog(taskId)` is the row's delete — the same delete as
-`deleteFlowLog(recordId)`, addressed the way a row can address it — and drops
-the viewed day's reading, since that is the one on screen.
+**The observation is the only place a ⚡ lives** — `SessionStore.flowMinutesOn(date)`
+is what the row reads, the field is gone from `Task`, and `sanitizeTask` reads a
+stored one past rather than repairing it. It could not be corrected before, because
+the badge was ALSO a `flowMinutes` field on the day's task and the autosave did not
+then reach a past day, so an amended one came back on the next load. Hence two
+callbacks on the row and not one: `RowMeasurements.openFlowLog` is the ⚡ BUTTON (a
+first measurement, any day up to today) and `RowMeasurements.editFlowLog` the badge
+(a correction, any day) — a day ahead passes the second and withholds the first,
+exactly as it does for 🪫. `SessionStore.clearFlowLog(taskId)` is the row's delete —
+the same delete as `deleteFlowLog(recordId)`, addressed the way a row can address it
+— and drops the viewed day's reading, since that is the one on screen.
 
 The timer that fills a 🪫 length is gated the same way — `day-actions.svelte` renders
 `session-clock.svelte` on **today** alone, and a past day's 🪫 editor takes no stopped reading (`MeasurementEditors`). It is one bounded object whose outline holds

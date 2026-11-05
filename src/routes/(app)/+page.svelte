@@ -267,20 +267,12 @@
 				nextTaskId={plan.remainingDay?.nextTask?.id}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={removeTask}
-				flowDrafts={editors.flowDrafts}
-				{flowLogs}
-				onflowopen={canLog ? editors.openFlowLog : undefined}
-				onflowedit={editors.openFlowLog}
-				onflowclose={editors.closeFlowLog}
-				onlogflow={editors.saveFlowLog}
-				onflowdelete={editors.clearFlowLog}
-				drainDrafts={editors.drainDrafts}
-				{drainLogs}
-				ondrainopen={canLog ? editors.openDrainLog : undefined}
-				ondrainclose={editors.closeDrainLog}
-				ondrainsave={editors.saveDrainLog}
-				ondrainedit={editors.editDrainLog}
-				ondraindelete={editors.deleteDrainLog}
+				measurementsOf={(id) =>
+					editors.forTask(id, {
+						flowMinutes: flowLogs.get(id),
+						drainLogs: drainLogs.get(id) ?? [],
+						canLog,
+					})}
 				onupdate={(taskId, changes) => session.updateTask(taskId, changes)}
 				form={addTaskForm}
 				strip={daily.suggestedTasks.length ? dayStrip : undefined}

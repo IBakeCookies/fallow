@@ -20,6 +20,26 @@ import {
 	removeLogWithUndo,
 } from '$lib/presentation/utils/remove-log-with-undo';
 
+/** One row's readings, drafts and id-bound verbs. Why two ⚡ openers, and why 🪫's
+ *  corrections are required: presentation/AGENTS.md,
+ *  "Both writers are offered on any day up to today, the timer only today". */
+export interface RowMeasurements {
+	flowMinutes?: number;
+	flowDraft: EditorDraft | null;
+	drainLogs: Persisted<DrainObservationRecord>[];
+	drainDraft: DrainDraft | null;
+	openFlowLog?: (source: EditorSource) => void;
+	editFlowLog: () => void;
+	closeFlowLog: () => void;
+	saveFlowLog: (minutes: number) => void;
+	clearFlowLog: () => void;
+	openDrainLog?: (source: EditorSource) => void;
+	closeDrainLog: () => void;
+	saveDrainLog: (entry: { hours: number; mind: number; body: number }) => void;
+	editDrainLog: (log: Persisted<DrainObservationRecord>) => void;
+	deleteDrainLog: (recordId: number) => void;
+}
+
 export class MeasurementEditors {
 	#session: SessionStore;
 	#observations: EnergyObservationStore;
@@ -116,4 +136,28 @@ export class MeasurementEditors {
 		this.closeFlowLog(taskId);
 		this.closeDrainLog(taskId);
 	};
+
+	forTask = (
+		taskId: number,
+		{
+			flowMinutes,
+			drainLogs,
+			canLog,
+		}: { flowMinutes?: number; drainLogs: Persisted<DrainObservationRecord>[]; canLog: boolean },
+	): RowMeasurements => ({
+		flowMinutes,
+		flowDraft: this.#flowDrafts[taskId] ?? null,
+		drainLogs,
+		drainDraft: this.#drainDrafts[taskId] ?? null,
+		openFlowLog: canLog ? (source) => this.openFlowLog(taskId, source) : undefined,
+		editFlowLog: () => this.openFlowLog(taskId, 'button'),
+		closeFlowLog: () => this.closeFlowLog(taskId),
+		saveFlowLog: (minutes) => this.saveFlowLog(taskId, minutes),
+		clearFlowLog: () => this.clearFlowLog(taskId),
+		openDrainLog: canLog ? (source) => this.openDrainLog(taskId, source) : undefined,
+		closeDrainLog: () => this.closeDrainLog(taskId),
+		saveDrainLog: (entry) => this.saveDrainLog(taskId, entry),
+		editDrainLog: (log) => this.editDrainLog(taskId, log),
+		deleteDrainLog: (recordId) => this.deleteDrainLog(taskId, recordId),
+	});
 }

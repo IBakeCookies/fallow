@@ -258,6 +258,30 @@ test('a flow log dropped from the Lab’s row comes back on undo', async ({ page
 	await expect(badge).toBeVisible();
 });
 
+// The Lab's 🪫 prompt has its own test; this is its ⚡ open and close, on the Lab's row.
+test('completing a task on the Lab asks for its time-to-flow, and un-completing withdraws it', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	const checkbox = page.getByRole('checkbox', {
+		name: 'Mark Boxing training complete',
+	});
+
+	const flowForm = taskRow(page, 'Boxing training').locator('form').filter({
+		hasText: 'Minutes to reach flow',
+	});
+
+	await checkbox.check();
+	await expect(flowForm).toBeVisible();
+
+	await checkbox.uncheck();
+	await expect(flowForm).toHaveCount(0);
+});
+
 /* The other half of that list's two verbs, added 2026-08-10: the ✎ corrects in place
    rather than linking to the day, which is possible because a correction rewrites the
    quantities the user rated and re-derives nothing from a task. Crossing the screens is

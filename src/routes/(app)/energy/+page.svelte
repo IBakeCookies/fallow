@@ -297,22 +297,13 @@
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}
 			plannedHours={plannedFor(task.id)}
-			flowMinutes={flowLogs.get(task.id)}
-			drainLogs={drainLogs.get(task.id) ?? []}
-			flowDraft={editors.flowDrafts[task.id] ?? null}
-			drainDraft={editors.drainDrafts[task.id] ?? null}
+			measurements={editors.forTask(task.id, {
+				flowMinutes: flowLogs.get(task.id),
+				drainLogs: drainLogs.get(task.id) ?? [],
+				canLog: true,
+			})}
 			ontoggle={() => session.toggleTask(task.id)}
 			onremove={() => removeTask(task.id)}
-			onflowopen={(source) => editors.openFlowLog(task.id, source)}
-			onflowedit={() => editors.openFlowLog(task.id, 'button')}
-			onflowclose={() => editors.closeFlowLog(task.id)}
-			onlogflow={(minutes) => editors.saveFlowLog(task.id, minutes)}
-			onflowdelete={() => editors.clearFlowLog(task.id)}
-			ondrainopen={(source) => editors.openDrainLog(task.id, source)}
-			ondrainclose={() => editors.closeDrainLog(task.id)}
-			ondrainsave={(entry) => editors.saveDrainLog(task.id, entry)}
-			ondrainedit={(log) => editors.editDrainLog(task.id, log)}
-			ondraindelete={(recordId) => editors.deleteDrainLog(task.id, recordId)}
 			onupdate={(edit) => session.updateTask(task.id, edit)}
 			locale={getDateLocale()}
 		/>
