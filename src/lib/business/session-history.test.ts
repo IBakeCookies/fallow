@@ -1020,7 +1020,8 @@ describe('readModelReport α and r skill', () => {
 
 		// 01-05 is the day the user first rated, recorded before its fit had read
 		// anything, so it holds the defaults. 01-10 sits before the report's 30-day
-		// trend window, which the walk reads past.
+		// trend window, which the walk reads past. Today's is stale and never read:
+		// today's ratings are graded by the live fit, as the card beside them is.
 		const recorded = [
 			fitSnapshot('2014-01-05'),
 			fitSnapshot('2014-01-10', {
@@ -1037,6 +1038,11 @@ describe('readModelReport α and r skill', () => {
 				alphaCog: 0.9,
 				alphaPhys: 0.7,
 				recoveryRate: 1.4,
+			}),
+			fitSnapshot(today, {
+				alphaCog: 1.99,
+				alphaPhys: 1.99,
+				recoveryRate: 3,
 			}),
 		];
 
