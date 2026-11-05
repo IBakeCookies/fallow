@@ -65,6 +65,14 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import {
+	ALPHA_FIT_MAX,
+	ALPHA_FIT_MIN,
+	RECOVERY_FIT_MAX,
+	RECOVERY_FIT_MIN,
+	STOP_FIT_MAX,
+	STOP_FIT_MIN,
+} from '$lib/business/utils/energy-fit-bounds';
 
 // ================== Types & defaults ==================
 
@@ -1545,16 +1553,6 @@ export const DRAIN_NOISE_PRIOR_STD = 0.15;
 export const CALIBRATION_NOISE_PRIOR_WEIGHT = 4;
 
 /**
- * Fit bounds = the Energy Lab's α input range, so a fitted value is always
- * representable (and appliable) in the UI. The bounds also play the role of
- * fitUserConstants' absurdity guard: wildly inconsistent ratings can at worst
- * pin α to an extreme-but-valid drain rate, never break the dynamics.
- */
-export const ALPHA_FIT_MIN = 0.05;
-
-export const ALPHA_FIT_MAX = 2;
-
-/**
  * Calibrate ONE reservoir's drain rate α from end-of-session drain ratings.
  *
  * MODEL: the session is assumed to start from a full reservoir (a
@@ -1833,15 +1831,6 @@ export const RECOVERY_PRIOR_STRENGTH = 0.05;
 export const RECOVERY_NOISE_PRIOR_STD = 0.21;
 
 /**
- * Fit bounds = the Energy Lab's recovery-rate input range, so a fitted value
- * is always representable (and appliable) in the UI; doubles as the absurdity
- * guard, exactly like the α fit's bounds.
- */
-export const RECOVERY_FIT_MIN = 0.1;
-
-export const RECOVERY_FIT_MAX = 3;
-
-/**
  * Calibrate the shared recovery rate r from pre/post-rest rating pairs.
  *
  * MODEL: during pure rest the reservoir law loses α entirely — demand 0 gives
@@ -2000,14 +1989,6 @@ export const STOP_PRIOR_STRENGTH = 1;
  * probe day).
  */
 export const STOP_NOISE_PRIOR_STD = 0.25;
-
-/**
- * Fit bounds = the Energy Lab's freeTimeValue input range (same
- * representability + absurdity-guard role as the α and r fit bounds).
- */
-export const STOP_FIT_MIN = 0;
-
-export const STOP_FIT_MAX = 3;
 
 /**
  * Inversion margin for the stop bracket: a day with

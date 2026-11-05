@@ -56,12 +56,11 @@ import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
-	RECOVERY_FIT_MAX,
-	RECOVERY_FIT_MIN,
 	RECOVERY_NOISE_PRIOR_STD,
 	RECOVERY_PRIOR_STRENGTH,
 	type RestObservation,
 } from '$lib/business/model/zenith-energy';
+import { RECOVERY_FIT_MAX, RECOVERY_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 
 /** Seeded so a quoted number can be reproduced, not just re-rolled. */
 function mulberry32(seed: number): () => number {

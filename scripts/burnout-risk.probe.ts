@@ -31,12 +31,8 @@ import {
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
-import {
-	ALPHA_FIT_MAX,
-	DEFAULT_ENERGY_PARAMS,
-	RECOVERY_FIT_MIN,
-	type EnergyParams,
-} from '$lib/business/model/zenith-energy';
+import { DEFAULT_ENERGY_PARAMS, type EnergyParams } from '$lib/business/model/zenith-energy';
+import { ALPHA_FIT_MAX, RECOVERY_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import type { Task } from '$lib/data/type';
 
 /** Seeded so a quoted number can be reproduced, not just re-rolled. */

@@ -63,11 +63,11 @@ import {
 } from '$lib/business/model/zenith';
 import {
 	DEFAULT_ENERGY_PARAMS,
-	RECOVERY_FIT_MIN,
 	simulateReservoirs,
 	type EnergyParams,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { RECOVERY_FIT_MIN } from '$lib/business/utils/energy-fit-bounds';
 import {
 	RESERVOIR_CYCLE_HOURS,
 	seedMorningReservoirs,

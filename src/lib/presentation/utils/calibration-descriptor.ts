@@ -1,11 +1,5 @@
-/* The "Your model" rows: each fit's value beside the default it is anchored to.
-
-   Five rows × fitted-or-not is ten spellings of a number, and the ≈/±/unit
-   vocabulary has to match the Energy Lab's fit lines — with one exception since
-   2026-09-14: the Lab's λ₀ row reads `spread`, its std being blind to an error
-   every day shares (MATH.md §8.10), while these five keep one shared format. It lived in
-   `analytics/+page.svelte`, where a row that quietly printed a default as though
-   it were a fit would have gone unnoticed.
+/* Each fit's reading on both screens: the Analytics "Your model" rows, the fit beside
+   the default it is anchored to, and the Energy Lab's line under each fitted stepper.
 
    The counts are each fit's OWN `usedCount` — informative observations, not raw
    log rows. The ϕ row's is additionally recency-weighted, so it is a fresh-log
@@ -18,6 +12,16 @@
 import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
+
+// Two decimals each, and only for a fit: a default is not an estimate and has no std.
+function fitFigures(isFitted: boolean, value: number, std: number | undefined, locale: string) {
+	return isFitted
+		? {
+				value: formatDecimals(value, 2, locale),
+				std: formatDecimals(std ?? 0, 2, locale),
+			}
+		: null;
+}
 
 /** The three ☕/🪫 readings share one shape. */
 type RatingSkill = CalibrationSnapshot['energy']['skill']['recovery'];
@@ -94,7 +98,11 @@ export function calibrationRows(
 		value: number,
 		std: number | undefined,
 		unit: string,
-	) => (fit.fitted ? `≈ ${f2(value)} ± ${f2(std ?? 0)} ${unit}` : `${f2(value)} ${unit}`);
+	) => {
+		const figures = fitFigures(fit.fitted, value, std, locale);
+
+		return figures ? `≈ ${figures.value} ± ${figures.std} ${unit}` : `${f2(value)} ${unit}`;
+	};
 
 	// One point is a dot, not a trend — and a row that plotted one would draw a
 	// flat line through whatever single day happens to be recorded.
@@ -232,4 +240,75 @@ export function calibrationRows(
 			trend: trend(stopLabel, series.stoppingValue, defaults.freeTimeValue, outputPerHour),
 		},
 	];
+}
+
+/** The 🪫 ratings logged today, which α reads from tomorrow; undefined while there are none. */
+export function drainPendingLine(count: number): string | undefined {
+	if (count === 0) return undefined;
+
+	return count === 1
+		? m.energy_drain_pending_one()
+		: m.energy_drain_pending({
+				count,
+			});
+}
+
+/** The line under each fitted Lab stepper: undefined with no logs, null where they carry no signal. */
+export function labFitLines(
+	fits: {
+		cognitiveDrain: CalibrationSnapshot['energy']['cognitiveDrain'];
+		physicalDrain: CalibrationSnapshot['energy']['physicalDrain'];
+		recovery: CalibrationSnapshot['energy']['recovery'];
+		stopping: Omit<CalibrationSnapshot['stopping'], 'todayPending'>;
+	},
+	hasLogs: { drain: boolean; rest: boolean; stop: boolean },
+	locale: string,
+): Record<'alphaCog' | 'alphaPhys' | 'recoveryRate' | 'freeTimeValue', string | null | undefined> {
+	const line = (
+		hasLog: boolean,
+		fit: { fitted: boolean; usedCount: number },
+		value: number,
+		std: number | undefined,
+		message: (inputs: { value: string; std: string; count: number }) => string,
+	) => {
+		if (!hasLog) return undefined;
+
+		const figures = fitFigures(fit.fitted, value, std, locale);
+
+		return (
+			figures &&
+			message({
+				...figures,
+				count: fit.usedCount,
+			})
+		);
+	};
+
+	const { cognitiveDrain, physicalDrain, recovery, stopping } = fits;
+
+	return {
+		alphaCog: line(
+			hasLogs.drain,
+			cognitiveDrain,
+			cognitiveDrain.alpha,
+			cognitiveDrain.alphaStd,
+			m.energy_fit_value,
+		),
+		alphaPhys: line(
+			hasLogs.drain,
+			physicalDrain,
+			physicalDrain.alpha,
+			physicalDrain.alphaStd,
+			m.energy_fit_value,
+		),
+		recoveryRate: line(hasLogs.rest, recovery, recovery.rate, recovery.rateStd, m.energy_fit_value),
+		// λ₀'s std prices scatter alone (MATH.md §8.10), which the Lab says: spread here, ± on Analytics (M108).
+		freeTimeValue: line(
+			hasLogs.stop,
+			stopping,
+			stopping.value,
+			stopping.valueStd,
+			m.energy_stop_fit_value,
+		),
+	};
 }

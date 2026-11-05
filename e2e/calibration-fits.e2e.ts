@@ -308,6 +308,24 @@ test('a break logged today is named beside the recovery fit', async ({ page }) =
 	await expect(paramFit(page, 'recovery-rate')).toHaveText('no informative ratings');
 });
 
+// One pair is two observations, one per reservoir.
+test('that same break fits r once the clock has passed midnight, read as a ±', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logRest(page, 30, 9, 8, 3, 2);
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	await expect(paramFit(page, 'recovery-rate')).toHaveText(/^≈ \d+\.\d{2} ± \d+\.\d{2} · n=2$/);
+});
+
 // business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
 // Apply button is that the sliders stay the user's until it is pressed — and
 // there is one button for all four fits, because their order is the math.
@@ -363,6 +381,24 @@ test('a changed parameter survives a reload', async ({ page }) => {
 	await page.reload();
 
 	await expect(page.getByLabel('Physical drain')).toHaveValue('0.75');
+});
+
+// Each fit is clamped to its stepper's range, so Apply never writes a value the stepper cannot hold.
+test('each fitted parameter’s stepper spans the range its fit can return', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	for (const [id, min, max] of [
+		['alpha-cog', '0.05', '2'],
+		['alpha-phys', '0.05', '2'],
+		['recovery-rate', '0.1', '3'],
+		['free-time-value', '0', '3'],
+	]) {
+		await expect(page.locator(`#${id}`)).toHaveAttribute('min', min);
+		await expect(page.locator(`#${id}`)).toHaveAttribute('max', max);
+	}
 });
 
 /* ☕'s card is the one left in the app that links to this list, and it links to it rather

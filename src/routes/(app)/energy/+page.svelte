@@ -4,6 +4,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
+	import { drainPendingLine, labFitLines } from '$lib/presentation/utils/calibration-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import { MeasurementEditors } from '$lib/presentation/utils/measurement-editor.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
@@ -35,6 +36,14 @@
 	import { setEnergyPlanStore } from '$lib/business/store/energy-plan-store.svelte';
 	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
 	import { suggestTargetMinutes } from '$lib/business/utils/session-timer';
+	import {
+		ALPHA_FIT_MAX,
+		ALPHA_FIT_MIN,
+		RECOVERY_FIT_MAX,
+		RECOVERY_FIT_MIN,
+		STOP_FIT_MAX,
+		STOP_FIT_MIN,
+	} from '$lib/business/utils/energy-fit-bounds';
 
 	const VIEW_KEY = 'zenith-energy-view';
 
@@ -58,10 +67,6 @@
 	const windowHours = $derived(session.availableHours);
 	const trailingFreeHours = $derived(energyPlan.trailingFreeHours);
 	const valueVsClassic = $derived(energyPlan.valueVsClassic);
-	const cogDrainFit = $derived(energyPlan.cognitiveDrainFit);
-	const physDrainFit = $derived(energyPlan.physicalDrainFit);
-	const recoveryFit = $derived(energyPlan.recoveryFit);
-	const pendingDrainLogs = $derived(observations.pendingDrainLogCount);
 	const pendingRestLogs = $derived(observations.pendingRestLogCount);
 	const stopFit = $derived(energyPlan.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
@@ -148,56 +153,24 @@
 
 	// ---------- Presentation helpers ----------
 
-	// Each fit, formatted for the parameter row it fits: `null` where the logs carry no
-	// signal, `undefined` where there are no logs to carry one.
-	const drainReading = (fit: typeof cogDrainFit) =>
-		drainObservations.length === 0
-			? undefined
-			: fit.fitted
-				? m.energy_fit_value({
-						value: decimal(fit.alpha, 2),
-						std: decimal(fit.alphaStd ?? 0, 2),
-						count: fit.usedCount,
-					})
-				: null;
-
-	const cogDrainReading = $derived(drainReading(cogDrainFit));
-	const physDrainReading = $derived(drainReading(physDrainFit));
-
-	const drainPending = $derived(
-		pendingDrainLogs === 0
-			? undefined
-			: pendingDrainLogs === 1
-				? m.energy_drain_pending_one()
-				: m.energy_drain_pending({
-						count: pendingDrainLogs,
-					}),
+	const fitLines = $derived(
+		labFitLines(
+			{
+				cognitiveDrain: energyPlan.cognitiveDrainFit,
+				physicalDrain: energyPlan.physicalDrainFit,
+				recovery: energyPlan.recoveryFit,
+				stopping: stopFit,
+			},
+			{
+				drain: drainObservations.length > 0,
+				rest: restObservations.length > 0,
+				stop: lab.stopObservations.length > 0,
+			},
+			getDateLocale(),
+		),
 	);
 
-	const recoveryReading = $derived(
-		restObservations.length === 0
-			? undefined
-			: recoveryFit.fitted
-				? m.energy_fit_value({
-						value: decimal(recoveryFit.rate, 2),
-						std: decimal(recoveryFit.rateStd ?? 0, 2),
-						count: recoveryFit.usedCount,
-					})
-				: null,
-	);
-
-	// §8.10: `valueStd` prices SCATTER alone, so this row says spread, not a ±.
-	const stopReading = $derived(
-		lab.stopObservations.length === 0
-			? undefined
-			: stopFit.fitted
-				? m.energy_stop_fit_value({
-						value: decimal(stopFit.value, 2),
-						std: decimal(stopFit.valueStd ?? 0, 2),
-						count: stopFit.usedCount,
-					})
-				: null,
-	);
+	const drainPending = $derived(drainPendingLine(observations.pendingDrainLogCount));
 
 	// One hue per task, shared by the timeline, the schedule list and the rows.
 	const colors = $derived(seriesColors(energyPlan.energyTasks.map((t) => t.id)));
@@ -497,12 +470,12 @@
 									hint={m.energy_cognitive_drain_hint()}
 									value={params.alphaCog}
 									onchange={(v) => lab.setParam('alphaCog', v)}
-									min={0.05}
-									max={2}
+									min={ALPHA_FIT_MIN}
+									max={ALPHA_FIT_MAX}
 									step={0.05}
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-mind-line"
-									fit={cogDrainReading}
+									fit={fitLines.alphaCog}
 									pending={drainPending}
 								/>
 								<ParamRow
@@ -511,12 +484,12 @@
 									hint={m.energy_physical_drain_hint()}
 									value={params.alphaPhys}
 									onchange={(v) => lab.setParam('alphaPhys', v)}
-									min={0.05}
-									max={2}
+									min={ALPHA_FIT_MIN}
+									max={ALPHA_FIT_MAX}
 									step={0.05}
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-body-line"
-									fit={physDrainReading}
+									fit={fitLines.alphaPhys}
 									pending={drainPending}
 								/>
 								<ParamRow
@@ -525,11 +498,11 @@
 									hint={m.energy_recovery_rate_hint()}
 									value={params.recoveryRate}
 									onchange={(v) => lab.setParam('recoveryRate', v)}
-									min={0.1}
-									max={3}
+									min={RECOVERY_FIT_MIN}
+									max={RECOVERY_FIT_MAX}
 									step={0.1}
 									unit={m.unit_per_hour()}
-									fit={recoveryReading}
+									fit={fitLines.recoveryRate}
 								/>
 								<ParamRow
 									id="free-time-value"
@@ -537,11 +510,11 @@
 									hint={m.energy_free_time_value_hint()}
 									value={params.freeTimeValue}
 									onchange={(v) => lab.setParam('freeTimeValue', v)}
-									min={0}
-									max={3}
+									min={STOP_FIT_MIN}
+									max={STOP_FIT_MAX}
 									step={0.1}
 									unit={m.unit_output_per_hour()}
-									fit={stopReading}
+									fit={fitLines.freeTimeValue}
 								/>
 								<ParamRow
 									id="terminal-value"
