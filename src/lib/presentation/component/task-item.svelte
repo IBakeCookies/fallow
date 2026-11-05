@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Badge } from '$lib/presentation/component/ui/badge';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
@@ -20,10 +20,7 @@
 
 	interface Props {
 		id: number;
-		title: string;
-		physicalDifficulty: number;
-		mentalDifficulty: number;
-		enjoyment: number;
+		task: TaskEdit;
 		nature: TaskNature;
 		completed: boolean;
 		priorityScore: number;
@@ -51,9 +48,6 @@
 		/** The day the block is a share of — arrives with `block`. */
 		totalHours?: number;
 		flowMinutes?: number;
-		mustDoToday?: boolean;
-		importance?: TaskImportance;
-		tags?: string[];
 		/** The user's past tags, for the ✎ editor's tag field — the list comes from
 		 *  the page, since a row cannot read the session store. */
 		tagVocabulary?: string[];
@@ -80,10 +74,7 @@
 
 	let {
 		id,
-		title,
-		physicalDifficulty,
-		mentalDifficulty,
-		enjoyment,
+		task,
 		nature,
 		completed,
 		priorityScore,
@@ -98,9 +89,6 @@
 		block,
 		totalHours,
 		flowMinutes,
-		mustDoToday = false,
-		importance = 'normal',
-		tags,
 		tagVocabulary,
 		slideDay,
 		ontoggle,
@@ -168,7 +156,7 @@
 			<p>{badge.description}</p>
 		</Tooltip.Content>
 	</Tooltip.Root>
-	{#if mustDoToday}
+	{#if task.mustDoToday}
 		<Tooltip.Root>
 			<Tooltip.Trigger class="cursor-help">
 				<Badge class="bg-warning-tint uppercase tracking-wide text-warning-strong">
@@ -181,18 +169,20 @@
 		</Tooltip.Root>
 	{/if}
 	<!-- `normal` is silent: a badge for the level nobody chose would be on every row. -->
-	{#if importance !== 'normal'}
+	{#if task.importance !== 'normal'}
 		<Tooltip.Root>
 			<Tooltip.Trigger class="cursor-help">
 				<Badge
 					class={cn(
 						'uppercase tracking-wide',
-						importance === 'high'
+						task.importance === 'high'
 							? 'bg-danger-tint text-danger-strong'
 							: 'bg-surface-inset text-ty-silent',
 					)}
 				>
-					{importance === 'high' ? m.task_importance_high_badge() : m.task_importance_low_badge()}
+					{task.importance === 'high'
+						? m.task_importance_high_badge()
+						: m.task_importance_low_badge()}
 				</Badge>
 			</Tooltip.Trigger>
 			<Tooltip.Content>
@@ -324,14 +314,8 @@
      a tooltip. -->
 <Tooltip.Provider delayDuration={400}>
 	<TaskRowShell
-		{title}
+		{task}
 		{completed}
-		{physicalDifficulty}
-		{mentalDifficulty}
-		{enjoyment}
-		{mustDoToday}
-		{importance}
-		{tags}
 		{tagVocabulary}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}

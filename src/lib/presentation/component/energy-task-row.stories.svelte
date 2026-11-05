@@ -6,6 +6,16 @@
 	import EnergyTaskRow from '$lib/presentation/component/energy-task-row.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 
+	const task = {
+		title: 'write the calibration section',
+		physicalDifficulty: 2,
+		mentalDifficulty: 8,
+		enjoyment: 7,
+		mustDoToday: false,
+		importance: 'normal',
+		tags: [],
+	} satisfies ComponentProps<typeof EnergyTaskRow>['task'];
+
 	const { Story } = defineMeta({
 		title: 'Component/Energy Task Row',
 		component: EnergyTaskRow,
@@ -13,12 +23,8 @@
 		tags: ['autodocs'],
 		args: {
 			locale: 'en-US',
-			title: 'write the calibration section',
+			task,
 			completed: false,
-			physicalDifficulty: 2,
-			mentalDifficulty: 8,
-			enjoyment: 7,
-			mustDoToday: false,
 			color: 'var(--series-1)',
 			trueEffort: 4.1,
 			plannedHours: 1.75,
@@ -109,7 +115,7 @@
 		// the fit their own plans are built from.
 		await userEvent.click(
 			canvas.getByRole('checkbox', {
-				name: `Mark ${args.title} complete`,
+				name: `Mark ${args.task.title} complete`,
 			}),
 		);
 
@@ -154,10 +160,13 @@
 <Story
 	name="Unfunded"
 	args={{
-		title: 'reorganize the garage',
-		physicalDifficulty: 9,
-		mentalDifficulty: 1,
-		enjoyment: 2,
+		task: {
+			...task,
+			title: 'reorganize the garage',
+			physicalDifficulty: 9,
+			mentalDifficulty: 1,
+			enjoyment: 2,
+		},
 		plannedHours: 0,
 		color: 'var(--series-3)',
 	}}
@@ -177,7 +186,7 @@
 		// No plan at all is not "no hours for this task" — that would be a claim the optimizer never
 		// made, on every row at once
 		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
-		await expect(canvas.getByText(args.title)).toBeInTheDocument();
+		await expect(canvas.getByText(args.task.title)).toBeInTheDocument();
 	}}
 />
 
@@ -219,7 +228,10 @@
 <Story
 	name="Editing"
 	args={{
-		mustDoToday: true,
+		task: {
+			...task,
+			mustDoToday: true,
+		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// ✎ opens the same editor the main page's rows open, minus the must-do flag: the plan advisor
@@ -232,7 +244,7 @@
 		);
 
 		const title = canvas.getByLabelText('Title');
-		await expect(title).toHaveValue(args.title);
+		await expect(title).toHaveValue(args.task.title);
 
 		// The editor is where the three inputs are set, and where this mode stops
 		await expect(canvas.getAllByRole('slider')).toHaveLength(3);
@@ -251,9 +263,9 @@
 		// flag it was seeded with, not the false a hidden checkbox would have reported
 		await expect(args.onupdate).toHaveBeenCalledExactlyOnceWith({
 			title: 'write §8.11',
-			physicalDifficulty: args.physicalDifficulty,
-			mentalDifficulty: args.mentalDifficulty,
-			enjoyment: args.enjoyment,
+			physicalDifficulty: args.task.physicalDifficulty,
+			mentalDifficulty: args.task.mentalDifficulty,
+			enjoyment: args.task.enjoyment,
 			mustDoToday: true,
 			importance: 'normal',
 			tags: [],
@@ -261,6 +273,41 @@
 
 		// Saving closes it
 		await expect(canvas.queryByLabelText('Title')).not.toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="Editing keeps the level and the tags"
+	args={{
+		task: {
+			...task,
+			importance: 'high',
+			tags: ['writing', 'deep work'],
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		// Neither is read on this row, but ✎ is seeded with both and must hand them back.
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Edit task',
+			}),
+		);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Save',
+			}),
+		);
+
+		await expect(args.onupdate).toHaveBeenCalledExactlyOnceWith({
+			title: 'write the calibration section',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 7,
+			mustDoToday: false,
+			importance: 'high',
+			tags: ['writing', 'deep work'],
+		});
 	}}
 />
 

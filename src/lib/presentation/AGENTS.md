@@ -265,12 +265,12 @@ Six components hold what the two screens say the same way:
   committing a chip on Enter or a typed comma, whose vocabulary is a prop
   BOTH forms pass. It is threaded to the ✎ editor through `task-list` /
   `energy-task-row` → `task-row-shell`, because a row may not read the session
-  store. It reached only the add form until 2026-09-04, on the grounds that the
-  editor offers no titles either — but that reason does not transfer: a picked
-  title rewrites the ratings and the tags, a picked TAG rewrites nothing, so
-  withholding the list only invited a second spelling of a tag the user has.
-  `TaskEdit` — the seven fields a form can set — is this component's
-  type, since adding a task and re-tuning one emit the same thing. Importance
+  store. The editor offers no titles but does offer tags: a picked TAG rewrites
+  nothing, so withholding the list only invites a second spelling of one.
+  `TaskEdit` — the seven fields a form can set — is this component's type,
+  since adding a task and re-tuning one emit the same thing, and it is what a
+  row is handed whole: `toTaskEdit`, above both rows, reads a stored task's
+  absent flag, level and tags as their defaults once. Importance
   belongs here and `mustDoToday` does not, for the reason the model file gives:
   the level is a property of the task, the flag is a statement about today. Each
   form still owns its own action row AND its own flag: both are the same one

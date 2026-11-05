@@ -8,6 +8,16 @@
 	import type { DayBlock } from '$lib/presentation/utils/day-timeline';
 	import { newDrainDraft } from '$lib/presentation/utils/measurement-prompt';
 
+	const task = {
+		title: 'write the calibration section',
+		physicalDifficulty: 2,
+		mentalDifficulty: 8,
+		enjoyment: 7,
+		mustDoToday: false,
+		importance: 'normal',
+		tags: [],
+	} satisfies ComponentProps<typeof TaskItem>['task'];
+
 	const { Story } = defineMeta({
 		title: 'Component/Task Item',
 		component: TaskItem,
@@ -16,10 +26,7 @@
 		args: {
 			locale: 'en-US',
 			id: 1,
-			title: 'write the calibration section',
-			physicalDifficulty: 2,
-			mentalDifficulty: 8,
-			enjoyment: 7,
+			task,
 			nature: 'cognitive',
 			completed: false,
 			priorityScore: 12.4,
@@ -117,7 +124,7 @@
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
 		await expect(
 			canvas.getByRole('heading', {
-				name: args.title,
+				name: args.task.title,
 			}),
 		).toBeVisible();
 
@@ -410,7 +417,7 @@
 
 		await expect(
 			canvas.getByRole('heading', {
-				name: args.title,
+				name: args.task.title,
 			}),
 		).toHaveClass('line-through');
 
@@ -485,10 +492,13 @@
 <Story
 	name="Unallocated"
 	args={{
-		title: 'reorganize the garage',
-		physicalDifficulty: 9,
-		mentalDifficulty: 1,
-		enjoyment: 2,
+		task: {
+			...task,
+			title: 'reorganize the garage',
+			physicalDifficulty: 9,
+			mentalDifficulty: 1,
+			enjoyment: 2,
+		},
 		nature: 'physical',
 		priorityScore: 0.8,
 		suggestedHours: 0,
@@ -668,7 +678,10 @@
 <Story
 	name="Must do today"
 	args={{
-		mustDoToday: true,
+		task: {
+			...task,
+			mustDoToday: true,
+		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByText('Stays today')).toBeVisible();
@@ -697,6 +710,42 @@
 			mustDoToday: false,
 			importance: 'normal',
 			tags: [],
+		});
+	}}
+/>
+
+<Story
+	name="Editing keeps the level and the tags"
+	args={{
+		task: {
+			...task,
+			importance: 'high',
+			tags: ['writing', 'deep work'],
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByText('High importance')).toBeVisible();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Edit task',
+			}),
+		);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Save',
+			}),
+		);
+
+		await expect(args.onupdate).toHaveBeenCalledExactlyOnceWith(1, {
+			title: 'write the calibration section',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 7,
+			mustDoToday: false,
+			importance: 'high',
+			tags: ['writing', 'deep work'],
 		});
 	}}
 />
@@ -962,9 +1011,12 @@
 <Story
 	name="The sliders and what they derive, under the title"
 	args={{
-		physicalDifficulty: 0,
-		mentalDifficulty: 8,
-		enjoyment: 9,
+		task: {
+			...task,
+			physicalDifficulty: 0,
+			mentalDifficulty: 8,
+			enjoyment: 9,
+		},
 		trueEffort: 4.1,
 		suggestedHours: 1.75,
 		priorityScore: 25.3,

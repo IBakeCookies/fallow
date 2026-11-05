@@ -4,6 +4,7 @@ import {
 	AUTOSAVE_MS,
 	closeTaskForm,
 	expectTaskInputs,
+	isoDate,
 	logDrain,
 	logFlow,
 	openTaskForm,
@@ -11,6 +12,7 @@ import {
 	setSlider,
 	taskCard,
 	taskRow,
+	timeBudgetBar,
 } from './helpers';
 
 test('fresh profile shows the empty state', async ({ page }) => {
@@ -683,6 +685,184 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/');
 	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
+});
+
+/* ✎ is seeded from what the row was handed, and the Lab's editor shows no flag at all,
+   so a save that changes nothing must hand every field it was not shown back as it came. */
+test('saving ✎ unchanged keeps the flag, the level and the tags, on both screens', async ({
+	page,
+}) => {
+	await page.goto('/');
+
+	const title = await openTaskForm(page);
+	const form = page.getByRole('dialog').locator('form');
+
+	await title.fill('Send the invoice');
+	await form.getByLabel('Keep on today').check();
+
+	await form
+		.getByRole('group', {
+			name: 'Importance',
+		})
+		.getByRole('radio', {
+			name: 'High',
+			exact: true,
+		})
+		.check();
+
+	await form.getByLabel('Tags').fill('admin,');
+
+	await expect(
+		form.getByRole('button', {
+			name: 'Remove tag admin',
+		}),
+	).toBeVisible();
+
+	await form
+		.getByRole('button', {
+			name: 'Deploy Task',
+		})
+		.click();
+
+	await closeTaskForm(page);
+	await setBudget(page, 6);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	const editor = page.locator('form').filter({
+		has: page.getByLabel('Title'),
+	});
+
+	for (const path of ['/energy', '/']) {
+		await page.goto(path);
+
+		await page
+			.getByRole('button', {
+				name: 'Edit task',
+			})
+			.click();
+
+		await editor
+			.getByRole('button', {
+				name: 'Save',
+			})
+			.click();
+
+		await expect(page.getByLabel('Title')).toHaveCount(0);
+		await page.waitForTimeout(AUTOSAVE_MS);
+	}
+
+	await page.reload();
+
+	const row = taskRow(page, 'Send the invoice');
+
+	await expect(row.getByText('Stays today')).toBeVisible();
+	await expect(row.getByText('High importance')).toBeVisible();
+
+	await row
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	await expect(
+		row.getByRole('button', {
+			name: 'Remove tag admin',
+		}),
+	).toBeVisible();
+});
+
+/* A stored task answers none of the three optional questions until someone sets one
+   (`Task`), and the sanitizer drops a false flag on every read. Both rows must read the
+   absence as the default, never as a level nobody chose. */
+test('a task stored with no flag, level or tags reads as the defaults on both screens', async ({
+	page,
+}) => {
+	const date = isoDate(0);
+
+	// Seeded once the app's boot has opened the database — see `carry-unfinished.e2e.ts`.
+	await page.goto('/');
+	await expect(timeBudgetBar(page)).toHaveAttribute('open', '');
+
+	await page.evaluate(
+		(date) =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open('zenith-db');
+				request.onerror = () => reject(request.error);
+
+				request.onsuccess = () => {
+					const transaction = request.result.transaction('sessions', 'readwrite');
+
+					transaction.objectStore('sessions').put({
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'Morning run',
+								physicalDifficulty: 7,
+								mentalDifficulty: 1,
+								enjoyment: 6,
+								createdAt: date,
+								completed: false,
+							},
+						],
+						availableHours: 6,
+						switchCost: 0.25,
+						updatedAt: 1,
+					});
+
+					transaction.onerror = () => reject(transaction.error);
+					transaction.oncomplete = () => resolve();
+				};
+			}),
+		date,
+	);
+
+	const normal = page
+		.getByRole('group', {
+			name: 'Importance',
+		})
+		.getByRole('radio', {
+			name: 'Normal',
+			exact: true,
+		});
+
+	await page.reload();
+
+	const row = taskRow(page, 'Morning run');
+
+	await expect(row).toBeVisible();
+	await expect(row.getByText(/importance|Stays today/)).toHaveCount(0);
+
+	await row
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	await expect(normal).toBeChecked();
+	await expect(page.getByLabel('Keep on today')).not.toBeChecked();
+
+	await expect(
+		page.getByRole('button', {
+			name: /^Remove tag /,
+		}),
+	).toHaveCount(0);
+
+	await page.goto('/energy');
+
+	await page
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	await expect(normal).toBeChecked();
+
+	await expect(
+		page.getByRole('button', {
+			name: /^Remove tag /,
+		}),
+	).toHaveCount(0);
 });
 
 /* Importance is the one task field with no slider and no default worth showing on the

@@ -7,6 +7,7 @@
 	import { Button } from '$lib/presentation/component/ui/button';
 	import MustDoToggle from '$lib/presentation/component/must-do-toggle.svelte';
 	import TaskFormFields, {
+		toTaskEdit,
 		type TaskEdit,
 	} from '$lib/presentation/component/task-form-fields.svelte';
 
@@ -45,15 +46,13 @@
 	// The middle of every slider: what a task is rated when nothing says otherwise.
 	const DEFAULT_RATING = 5;
 
-	const emptyDraft = (): TaskEdit => ({
-		title: '',
-		physicalDifficulty: DEFAULT_RATING,
-		mentalDifficulty: DEFAULT_RATING,
-		enjoyment: DEFAULT_RATING,
-		mustDoToday: false,
-		importance: 'normal',
-		tags: [],
-	});
+	const emptyDraft = (): TaskEdit =>
+		toTaskEdit({
+			title: '',
+			physicalDifficulty: DEFAULT_RATING,
+			mentalDifficulty: DEFAULT_RATING,
+			enjoyment: DEFAULT_RATING,
+		});
 
 	let draft = $state(emptyDraft());
 
