@@ -1317,12 +1317,10 @@ runner-up.
 - ~~**A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
   instead of through it.**~~ Fixed 2026-10-04, with M118 found on the way,
   [calculation.test.ts](src/lib/business/model/metric/calculation.test.ts).
-- **A5 — the ⚡/🪫 editors' 14 props cross the row loose — raised
-  2026-10-01.** Its other half, the task's seven-field definition, travels
-  whole since 2026-11-05
-  ([task-list.e2e.ts](e2e/task-list.e2e.ts)). The editors' 14 still take
-  every hop from `task-list` and the Lab's page down to `task-row-shell`: A1
-  gave their lifecycle one module, not their route to the shell.
+- ~~**A5 — a task's definition and the ⚡/🪫 editors cross the row as loose
+  props.**~~ Fixed 2026-11-05, the definition in
+  [task-list.e2e.ts](e2e/task-list.e2e.ts) and the editors' 14 in
+  [flow-log.e2e.ts](e2e/flow-log.e2e.ts).
 - **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
   Lab route's three reading builders, `param-row`'s null state and
   `calibration-descriptor.ts` each decide part of a fit's reading (its states,

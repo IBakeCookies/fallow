@@ -16,6 +16,22 @@
 		tags: [],
 	} satisfies ComponentProps<typeof EnergyTaskRow>['task'];
 
+	const measurements = {
+		drainLogs: [],
+		flowDraft: null,
+		drainDraft: null,
+		openFlowLog: fn(),
+		editFlowLog: fn(),
+		closeFlowLog: fn(),
+		saveFlowLog: fn(),
+		clearFlowLog: fn(),
+		openDrainLog: fn(),
+		closeDrainLog: fn(),
+		saveDrainLog: fn(),
+		editDrainLog: fn(),
+		deleteDrainLog: fn(),
+	} satisfies ComponentProps<typeof EnergyTaskRow>['measurements'];
+
 	const { Story } = defineMeta({
 		title: 'Component/Energy Task Row',
 		component: EnergyTaskRow,
@@ -28,20 +44,9 @@
 			color: 'var(--series-1)',
 			trueEffort: 4.1,
 			plannedHours: 1.75,
-			drainLogs: [],
-			flowDraft: null,
-			drainDraft: null,
+			measurements,
 			ontoggle: fn(),
 			onremove: fn(),
-			onflowopen: fn(),
-			onflowclose: fn(),
-			onlogflow: fn(),
-			onflowdelete: fn(),
-			ondrainopen: fn(),
-			ondrainclose: fn(),
-			ondrainsave: fn(),
-			ondrainedit: fn(),
-			ondraindelete: fn(),
 			onupdate: fn(),
 		},
 	});
@@ -124,8 +129,8 @@
 		// Ticking a task off ends the session both measurements describe, so it asks
 		// both. Both drafts belong to the page, so the row reports the two prompts and
 		// this story's mocks never answer them — which is why no editor appears below.
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith('completion');
-		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith('completion');
+		await expect(args.measurements.openFlowLog).toHaveBeenCalledExactlyOnceWith('completion');
+		await expect(args.measurements.openDrainLog).toHaveBeenCalledExactlyOnceWith('completion');
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -143,7 +148,7 @@
 			}),
 		);
 
-		await expect(args.ondrainopen).toHaveBeenNthCalledWith(2, 'button');
+		await expect(args.measurements.openDrainLog).toHaveBeenNthCalledWith(2, 'button');
 	}}
 />
 
@@ -194,7 +199,10 @@
 	name="Completed and rated"
 	args={{
 		completed: true,
-		drainLogs: [drainLog()],
+		measurements: {
+			...measurements,
+			drainLogs: [drainLog()],
+		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// Finished, and rated: the optimizer no longer plans it, so its hours go rather than read "no
@@ -221,7 +229,7 @@
 
 		await userEvent.click(chip);
 
-		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(drainLog());
+		await expect(args.measurements.editDrainLog).toHaveBeenCalledExactlyOnceWith(drainLog());
 	}}
 />
 
@@ -314,14 +322,17 @@
 <Story
 	name="Rating the session"
 	args={{
-		drainLogs: [drainLog()],
-		drainDraft: {
-			recordId: 11,
-			minutes: 45,
-			mind: 6,
-			body: 2,
-			focusMinutes: false,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			drainLogs: [drainLog()],
+			drainDraft: {
+				recordId: 11,
+				minutes: 45,
+				mind: 6,
+				body: 2,
+				focusMinutes: false,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -342,7 +353,7 @@
 			}),
 		);
 
-		await expect(args.ondrainsave).toHaveBeenCalledExactlyOnceWith({
+		await expect(args.measurements.saveDrainLog).toHaveBeenCalledExactlyOnceWith({
 			hours: 0.75,
 			mind: 6,
 			body: 2,
@@ -354,6 +365,6 @@
 			}),
 		);
 
-		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(11);
+		await expect(args.measurements.deleteDrainLog).toHaveBeenCalledExactlyOnceWith(11);
 	}}
 />

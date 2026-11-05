@@ -18,6 +18,22 @@
 		tags: [],
 	} satisfies ComponentProps<typeof TaskItem>['task'];
 
+	const measurements = {
+		flowDraft: null,
+		drainLogs: [],
+		drainDraft: null,
+		openFlowLog: fn(),
+		editFlowLog: fn(),
+		closeFlowLog: fn(),
+		saveFlowLog: fn(),
+		clearFlowLog: fn(),
+		openDrainLog: fn(),
+		closeDrainLog: fn(),
+		saveDrainLog: fn(),
+		editDrainLog: fn(),
+		deleteDrainLog: fn(),
+	} satisfies ComponentProps<typeof TaskItem>['measurements'];
+
 	const { Story } = defineMeta({
 		title: 'Component/Task Item',
 		component: TaskItem,
@@ -36,19 +52,7 @@
 			optimalStopHours: 2.25,
 			ontoggle: fn(),
 			onremove: fn(),
-			flowDraft: null,
-			onflowopen: fn(),
-			onflowedit: fn(),
-			onflowclose: fn(),
-			onlogflow: fn(),
-			drainDraft: null,
-			drainLogs: [],
-			ondrainopen: fn(),
-			ondrainclose: fn(),
-			ondrainsave: fn(),
-			ondrainedit: fn(),
-			ondraindelete: fn(),
-			onflowdelete: fn(),
+			measurements,
 			onupdate: fn(),
 		},
 	});
@@ -372,7 +376,10 @@
 	name="With a logged time-to-flow"
 	args={{
 		runOrder: 2,
-		flowMinutes: 40,
+		measurements: {
+			...measurements,
+			flowMinutes: 40,
+		},
 	}}
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
 		const badge = canvas.getByRole('button', {
@@ -388,12 +395,12 @@
 
 		// The badge corrects the reading; it is not the logging verb a past day withholds.
 		await userEvent.click(badge);
-		await expect(args.onflowedit).toHaveBeenCalledExactlyOnceWith(1, 'button');
-		await expect(args.onflowopen).not.toHaveBeenCalled();
+		await expect(args.measurements.editFlowLog).toHaveBeenCalledExactlyOnceWith();
+		await expect(args.measurements.openFlowLog).not.toHaveBeenCalled();
 
 		// ⚡ is one number per day, so an earlier one silences the completion prompt.
 		await userEvent.click(canvas.getByRole('checkbox'));
-		await expect(args.onflowopen).not.toHaveBeenCalled();
+		await expect(args.measurements.openFlowLog).not.toHaveBeenCalled();
 	}}
 />
 
@@ -428,16 +435,19 @@
 		expect(canvas.queryByText(/short of flow/)).toBeNull();
 
 		await userEvent.click(checkbox);
-		await expect(args.onflowopen).not.toHaveBeenCalled();
-		await expect(args.ondrainopen).not.toHaveBeenCalled();
+		await expect(args.measurements.openFlowLog).not.toHaveBeenCalled();
+		await expect(args.measurements.openDrainLog).not.toHaveBeenCalled();
 	}}
 />
 
 <Story
 	name="Past day"
 	args={{
-		flowMinutes: 40,
-		drainLogs: [drainLog()],
+		measurements: {
+			...measurements,
+			flowMinutes: 40,
+			drainLogs: [drainLog()],
+		},
 		onupdate: undefined,
 		onremove: undefined,
 	}}
@@ -476,7 +486,7 @@
 			}),
 		);
 
-		await expect(args.onflowedit).toHaveBeenCalledOnce();
+		await expect(args.measurements.editFlowLog).toHaveBeenCalledOnce();
 
 		// 🪫 the same, which is the point — one rule for both readings
 		await userEvent.click(
@@ -485,7 +495,9 @@
 			}),
 		);
 
-		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[0]);
+		await expect(args.measurements.editDrainLog).toHaveBeenCalledExactlyOnceWith(
+			args.measurements.drainLogs?.[0],
+		);
 	}}
 />
 
@@ -531,7 +543,7 @@
 			}),
 		);
 
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
+		await expect(args.measurements.openFlowLog).toHaveBeenCalledExactlyOnceWith('button');
 		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
 	}}
 />
@@ -539,9 +551,12 @@
 <Story
 	name="Flow editor open"
 	args={{
-		flowDraft: {
-			focusMinutes: false,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: false,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -553,7 +568,7 @@
 			}),
 		);
 
-		await expect(args.onlogflow).toHaveBeenCalledExactlyOnceWith(1, 25);
+		await expect(args.measurements.saveFlowLog).toHaveBeenCalledExactlyOnceWith(25);
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -561,7 +576,7 @@
 			}),
 		);
 
-		await expect(args.onflowclose).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.measurements.closeFlowLog).toHaveBeenCalledExactlyOnceWith();
 	}}
 />
 
@@ -574,8 +589,8 @@
 		await userEvent.click(checkbox);
 
 		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
-		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
+		await expect(args.measurements.openFlowLog).toHaveBeenCalledExactlyOnceWith('completion');
+		await expect(args.measurements.openDrainLog).toHaveBeenCalledExactlyOnceWith('completion');
 		await expect(checkbox).toHaveFocus();
 	}}
 />
@@ -584,15 +599,18 @@
 	name="Withdrawn prompt"
 	args={{
 		completed: true,
-		flowDraft: {
-			focusMinutes: false,
-			promptedByCompletion: true,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: false,
+				promptedByCompletion: true,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// `completed` is a prop: un-completing withdraws the question completion asked
 		await userEvent.click(canvas.getByRole('checkbox'));
-		await expect(args.onflowclose).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.measurements.closeFlowLog).toHaveBeenCalledExactlyOnceWith();
 	}}
 />
 
@@ -600,9 +618,12 @@
 	name="Keeps a hand-opened editor"
 	args={{
 		completed: true,
-		flowDraft: {
-			focusMinutes: true,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: true,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -610,7 +631,7 @@
 		await userEvent.click(canvas.getByRole('checkbox'));
 
 		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
-		await expect(args.onflowclose).not.toHaveBeenCalled();
+		await expect(args.measurements.closeFlowLog).not.toHaveBeenCalled();
 	}}
 />
 
@@ -654,7 +675,7 @@
 			}),
 		);
 
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
+		await expect(args.measurements.openFlowLog).toHaveBeenCalledExactlyOnceWith('completion');
 		await expect(title).toHaveValue('sparring');
 
 		await userEvent.click(
@@ -773,17 +794,20 @@
 <Story
 	name="Rating a session"
 	args={{
-		drainLogs: [],
-		drainDraft: {
-			minutes: 45,
-			mind: 6,
-			body: 2,
-			focusMinutes: false,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			drainLogs: [],
+			drainDraft: {
+				minutes: 45,
+				mind: 6,
+				body: 2,
+				focusMinutes: false,
+				promptedByCompletion: false,
+			},
+			openDrainLog: fn(),
+			closeDrainLog: fn(),
+			saveDrainLog: fn(),
 		},
-		ondrainopen: fn(),
-		ondrainclose: fn(),
-		ondrainsave: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// ✓ reports the session in hours, keyed by the task the row is
@@ -793,7 +817,7 @@
 			}),
 		);
 
-		await expect(args.ondrainsave).toHaveBeenCalledExactlyOnceWith(1, {
+		await expect(args.measurements.saveDrainLog).toHaveBeenCalledExactlyOnceWith({
 			hours: 0.75,
 			mind: 6,
 			body: 2,
@@ -806,27 +830,30 @@
 			}),
 		);
 
-		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.measurements.closeDrainLog).toHaveBeenCalledExactlyOnceWith();
 	}}
 />
 
 <Story
 	name="Rated sessions read on the row"
 	args={{
-		drainLogs: [
-			drainLog({
-				id: 11,
-				hours: 0.75,
-				mindDrain: 6,
-				bodyDrain: 2,
-			}),
-			drainLog({
-				id: 12,
-				hours: 2,
-				mindDrain: 9,
-				bodyDrain: 4,
-			}),
-		],
+		measurements: {
+			...measurements,
+			drainLogs: [
+				drainLog({
+					id: 11,
+					hours: 0.75,
+					mindDrain: 6,
+					bodyDrain: 2,
+				}),
+				drainLog({
+					id: 12,
+					hours: 2,
+					mindDrain: 9,
+					bodyDrain: 4,
+				}),
+			],
+		},
 	}}
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
 		// Two sessions are two ratings (MATH.md §8.7), and correcting one has to say WHICH
@@ -845,31 +872,37 @@
 		await waitFor(() => expect(body.getByText(/^Re-open this session/)).toBeVisible());
 
 		await userEvent.click(chips[1]);
-		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
+
+		await expect(args.measurements.editDrainLog).toHaveBeenCalledExactlyOnceWith(
+			args.measurements.drainLogs?.[1],
+		);
 	}}
 />
 
 <Story
 	name="Correcting a rating"
 	args={{
-		drainLogs: [
-			drainLog({
-				id: 11,
-			}),
-			drainLog({
-				id: 12,
-				hours: 2,
-				mindDrain: 9,
-				bodyDrain: 4,
-			}),
-		],
-		drainDraft: {
-			recordId: 11,
-			minutes: 45,
-			mind: 6,
-			body: 2,
-			focusMinutes: true,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			drainLogs: [
+				drainLog({
+					id: 11,
+				}),
+				drainLog({
+					id: 12,
+					hours: 2,
+					mindDrain: 9,
+					bodyDrain: 4,
+				}),
+			],
+			drainDraft: {
+				recordId: 11,
+				minutes: 45,
+				mind: 6,
+				body: 2,
+				focusMinutes: true,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -881,12 +914,15 @@
 
 		// The chip the editor is on closes it, rather than re-seeding fields under the caret.
 		await userEvent.click(chips[0]);
-		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
-		await expect(args.ondrainedit).not.toHaveBeenCalled();
+		await expect(args.measurements.closeDrainLog).toHaveBeenCalledExactlyOnceWith();
+		await expect(args.measurements.editDrainLog).not.toHaveBeenCalled();
 
 		// Another session's chip switches to it — what only a per-rating control can do.
 		await userEvent.click(chips[1]);
-		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
+
+		await expect(args.measurements.editDrainLog).toHaveBeenCalledExactlyOnceWith(
+			args.measurements.drainLogs?.[1],
+		);
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -894,7 +930,7 @@
 			}),
 		);
 
-		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(1, 11);
+		await expect(args.measurements.deleteDrainLog).toHaveBeenCalledExactlyOnceWith(11);
 
 		// 🪫 means "one more session", so over an open CORRECTION it opens a blank editor
 		// rather than closing one it never opened. It closes only its own — story below.
@@ -904,14 +940,17 @@
 			}),
 		);
 
-		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
+		await expect(args.measurements.openDrainLog).toHaveBeenCalledExactlyOnceWith('button');
 	}}
 />
 
 <Story
 	name="Closing a new session"
 	args={{
-		drainDraft: newDrainDraft('button'),
+		measurements: {
+			...measurements,
+			drainDraft: newDrainDraft('button'),
+		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// Over the editor it DID open, 🪫 closes it: an append editor is the one with no `recordId`,
@@ -922,15 +961,18 @@
 			}),
 		);
 
-		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
-		await expect(args.ondrainopen).not.toHaveBeenCalled();
+		await expect(args.measurements.closeDrainLog).toHaveBeenCalledExactlyOnceWith();
+		await expect(args.measurements.openDrainLog).not.toHaveBeenCalled();
 	}}
 />
 
 <Story
 	name="Rating a new session offers no delete"
 	args={{
-		drainDraft: newDrainDraft('button'),
+		measurements: {
+			...measurements,
+			drainDraft: newDrainDraft('button'),
+		},
 	}}
 	play={async ({ canvas }) => {
 		// Nothing is stored yet, so there is nothing to delete and the editor offers no 🗑
@@ -945,10 +987,13 @@
 <Story
 	name="Clearing a time-to-flow"
 	args={{
-		flowMinutes: 40,
-		flowDraft: {
-			focusMinutes: true,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			flowMinutes: 40,
+			flowDraft: {
+				focusMinutes: true,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -961,16 +1006,19 @@
 			}),
 		);
 
-		await expect(args.onflowdelete).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.measurements.clearFlowLog).toHaveBeenCalledExactlyOnceWith();
 	}}
 />
 
 <Story
 	name="Logging a first time-to-flow offers no delete"
 	args={{
-		flowDraft: {
-			focusMinutes: true,
-			promptedByCompletion: false,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: true,
+				promptedByCompletion: false,
+			},
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -985,7 +1033,10 @@
 <Story
 	name="Completion holds the drain prompt back on a rated task"
 	args={{
-		drainLogs: [drainLog()],
+		measurements: {
+			...measurements,
+			drainLogs: [drainLog()],
+		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// A rated task was rated from the stopped timer, so a second editor would open empty.
@@ -995,8 +1046,8 @@
 			}),
 		);
 
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
-		await expect(args.ondrainopen).not.toHaveBeenCalled();
+		await expect(args.measurements.openFlowLog).toHaveBeenCalledExactlyOnceWith('completion');
+		await expect(args.measurements.openDrainLog).not.toHaveBeenCalled();
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -1004,7 +1055,7 @@
 			}),
 		);
 
-		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
+		await expect(args.measurements.openDrainLog).toHaveBeenCalledExactlyOnceWith('button');
 	}}
 />
 
@@ -1045,18 +1096,21 @@
 <Story
 	name="Logged readings read apart from their triggers"
 	args={{
-		flowMinutes: 95,
-		drainLogs: [
-			drainLog({
-				id: 11,
-			}),
-			drainLog({
-				id: 12,
-				hours: 2,
-				mindDrain: 9,
-				bodyDrain: 4,
-			}),
-		],
+		measurements: {
+			...measurements,
+			flowMinutes: 95,
+			drainLogs: [
+				drainLog({
+					id: 11,
+				}),
+				drainLog({
+					id: 12,
+					hours: 2,
+					mindDrain: 9,
+					bodyDrain: 4,
+				}),
+			],
+		},
 	}}
 	play={async ({ canvas }) => {
 		// 🪫 is one rating per session (MATH.md §8.7), so the chips are unbounded: they wrap
@@ -1128,11 +1182,14 @@
 <Story
 	name="Both measurement forms open under the row"
 	args={{
-		flowDraft: {
-			focusMinutes: false,
-			promptedByCompletion: true,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: false,
+				promptedByCompletion: true,
+			},
+			drainDraft: newDrainDraft('completion'),
 		},
-		drainDraft: newDrainDraft('completion'),
 	}}
 	play={async ({ canvas }) => {
 		// Completion opens both editors ("Completion asks both" pins that half), and both stack
@@ -1148,11 +1205,14 @@
 <Story
 	name="The editor joins the two measurement forms"
 	args={{
-		flowDraft: {
-			focusMinutes: false,
-			promptedByCompletion: true,
+		measurements: {
+			...measurements,
+			flowDraft: {
+				focusMinutes: false,
+				promptedByCompletion: true,
+			},
+			drainDraft: newDrainDraft('completion'),
 		},
-		drainDraft: newDrainDraft('completion'),
 	}}
 	play={async ({ canvas, userEvent }) => {
 		// ✎ stacks with the other two, in the one row the task has

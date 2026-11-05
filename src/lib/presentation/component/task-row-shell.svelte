@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -11,12 +10,8 @@
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import { cn } from '$lib/presentation/utils';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
-	import {
-		completionPromptAction,
-		type DrainDraft,
-		type EditorDraft,
-		type EditorSource,
-	} from '$lib/presentation/utils/measurement-prompt';
+	import type { RowMeasurements } from '$lib/presentation/utils/measurement-editor.svelte';
+	import { completionPromptAction } from '$lib/presentation/utils/measurement-prompt';
 
 	// Why: presentation/AGENTS.md, "R3 in the UI — the two task screens are one definition".
 
@@ -39,22 +34,7 @@
 		 *  why the seeded value still round-trips. Same name all the way down. */
 		withMustDoToday?: boolean;
 		ontoggle: () => void;
-		flowMinutes?: number;
-		flowDraft?: EditorDraft | null;
-		/** Why two ⚡ callbacks, and why 🪫's corrections are required: presentation/AGENTS.md,
-		 *  "Both writers are offered on any day up to today, the timer only today". */
-		onflowopen?: (source: EditorSource) => void;
-		onflowedit: () => void;
-		onflowclose: () => void;
-		onlogflow: (minutes: number) => void;
-		onflowdelete: () => void;
-		drainDraft?: DrainDraft | null;
-		drainLogs?: Persisted<DrainObservationRecord>[];
-		ondrainopen?: (source: EditorSource) => void;
-		ondrainclose: () => void;
-		ondrainsave: (entry: { hours: number; mind: number; body: number }) => void;
-		ondrainedit: (log: Persisted<DrainObservationRecord>) => void;
-		ondraindelete: (recordId: number) => void;
+		measurements: RowMeasurements;
 		onupdate?: (edit: TaskEdit) => void;
 		onremove?: () => void;
 		/** The row's leading mark — `/`'s `#N`, the Lab's hue. */
@@ -80,20 +60,7 @@
 		tagVocabulary = [],
 		withMustDoToday = true,
 		ontoggle,
-		flowMinutes,
-		flowDraft = null,
-		onflowopen,
-		onflowedit,
-		onflowclose,
-		onlogflow,
-		onflowdelete,
-		drainDraft = null,
-		drainLogs = [],
-		ondrainopen,
-		ondrainclose,
-		ondrainsave,
-		ondrainedit,
-		ondraindelete,
+		measurements,
 		onupdate,
 		onremove,
 		lead,
@@ -111,39 +78,41 @@
 	// else opens it.
 	let isEditing = $state(false);
 
-	const hasFlowReading = $derived(flowMinutes !== undefined);
+	const hasFlowReading = $derived(measurements.flowMinutes !== undefined);
 
 	// `completed` is a prop, read BEFORE the parent flips it.
 	function onCompletionChange() {
 		const flowAction = completionPromptAction({
 			finishing: !completed,
 			measured: hasFlowReading,
-			editorOpenOnThisRow: flowDraft !== null,
-			promptOpenForThisTask: flowDraft?.promptedByCompletion ?? false,
+			editorOpenOnThisRow: measurements.flowDraft !== null,
+			promptOpenForThisTask: measurements.flowDraft?.promptedByCompletion ?? false,
 		});
 
 		const drainAction = completionPromptAction({
 			finishing: !completed,
-			measured: drainLogs.length > 0,
-			editorOpenOnThisRow: drainDraft !== null,
-			promptOpenForThisTask: drainDraft?.promptedByCompletion ?? false,
+			measured: measurements.drainLogs.length > 0,
+			editorOpenOnThisRow: measurements.drainDraft !== null,
+			promptOpenForThisTask: measurements.drainDraft?.promptedByCompletion ?? false,
 		});
 
 		ontoggle();
 
-		if (flowAction === 'open') onflowopen?.('completion');
+		if (flowAction === 'open') measurements.openFlowLog?.('completion');
 
-		if (flowAction === 'withdraw') onflowclose();
+		if (flowAction === 'withdraw') measurements.closeFlowLog();
 
-		if (drainAction === 'open') ondrainopen?.('completion');
+		if (drainAction === 'open') measurements.openDrainLog?.('completion');
 
-		if (drainAction === 'withdraw') ondrainclose();
+		if (drainAction === 'withdraw') measurements.closeDrainLog();
 	}
 
-	const hasLogged = $derived(hasFlowReading || drainLogs.length > 0);
+	const hasLogged = $derived(hasFlowReading || measurements.drainLogs.length > 0);
 	// With none of the four passed, an empty box would take the right end of the line
 	// the hours are meant to hold.
-	const hasControls = $derived(Boolean(onflowopen || ondrainopen || onupdate || onremove));
+	const hasControls = $derived(
+		Boolean(measurements.openFlowLog || measurements.openDrainLog || onupdate || onremove),
+	);
 </script>
 
 <li
@@ -224,14 +193,17 @@
 								<button
 									{...props}
 									type="button"
-									onclick={() => (flowDraft ? onflowclose() : onflowedit())}
+									onclick={() =>
+										measurements.flowDraft
+											? measurements.closeFlowLog()
+											: measurements.editFlowLog()}
 									aria-label={m.task_edit_flow_log_aria()}
 									class={cn(
 										READING_CHIP_CLASS,
 										'font-medium text-flow transition hover:text-ty-primary',
 									)}
 								>
-									⚡ {flowMinutes}m
+									⚡ {measurements.flowMinutes}m
 								</button>
 							{/snippet}
 						</Tooltip.Trigger>
@@ -241,7 +213,7 @@
 					</Tooltip.Root>
 				{/if}
 
-				{#each drainLogs as log (log.id)}
+				{#each measurements.drainLogs as log (log.id)}
 					<Tooltip.Root>
 						<Tooltip.Trigger>
 							{#snippet child({ props })}
@@ -249,7 +221,9 @@
 									{...props}
 									type="button"
 									onclick={() =>
-										drainDraft?.recordId === log.id ? ondrainclose() : ondrainedit(log)}
+										measurements.drainDraft?.recordId === log.id
+											? measurements.closeDrainLog()
+											: measurements.editDrainLog(log)}
 									aria-label={m.energy_edit_drain_log_aria()}
 									class={cn(READING_CHIP_CLASS, 'transition hover:text-ty-primary')}
 								>
@@ -285,14 +259,19 @@
 
 			{#if hasControls}
 				<div class="flex items-center gap-grid-2xs">
-					{#if onflowopen}
+					{#if measurements.openFlowLog}
 						<Tooltip.Root>
 							<Tooltip.Trigger
 								class={cn(
 									'row-action',
-									flowMinutes || flowDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
+									measurements.flowMinutes || measurements.flowDraft
+										? 'text-flow'
+										: 'text-ty-silent hover:text-flow',
 								)}
-								onclick={() => (flowDraft ? onflowclose() : onflowopen('button'))}
+								onclick={() =>
+									measurements.flowDraft
+										? measurements.closeFlowLog()
+										: measurements.openFlowLog?.('button')}
 								aria-label={m.task_log_flow_aria()}
 							>
 								⚡
@@ -305,19 +284,19 @@
 
 					<!-- Why the `recordId === undefined` arm: presentation/AGENTS.md, "One click rule
 			     covers both instruments" — 🪫 owns only the append editor. -->
-					{#if ondrainopen}
+					{#if measurements.openDrainLog}
 						<Tooltip.Root>
 							<Tooltip.Trigger
 								class={cn(
 									'row-action',
-									drainLogs.length > 0 || drainDraft
+									measurements.drainLogs.length > 0 || measurements.drainDraft
 										? 'text-flow'
 										: 'text-ty-silent hover:text-flow',
 								)}
 								onclick={() =>
-									drainDraft && drainDraft.recordId === undefined
-										? ondrainclose()
-										: ondrainopen('button')}
+									measurements.drainDraft && measurements.drainDraft.recordId === undefined
+										? measurements.closeDrainLog()
+										: measurements.openDrainLog?.('button')}
 								aria-label={m.energy_log_drain_aria()}
 							>
 								🪫
@@ -361,27 +340,27 @@
 
 	<!-- Both keyed on the draft: `seed`/`focusMinutes` are read at MOUNT and the page can
 	     swap a draft while its editor is open — unkeyed, ✓ overwrote a stored rating. -->
-	{#if flowDraft}
-		{#key flowDraft}
+	{#if measurements.flowDraft}
+		{#key measurements.flowDraft}
 			<FlowLogForm
-				seed={flowMinutes ?? null}
-				focusMinutes={flowDraft.focusMinutes}
-				onsave={onlogflow}
-				oncancel={onflowclose}
-				ondelete={hasFlowReading ? onflowdelete : undefined}
+				seed={measurements.flowMinutes ?? null}
+				focusMinutes={measurements.flowDraft.focusMinutes}
+				onsave={measurements.saveFlowLog}
+				oncancel={measurements.closeFlowLog}
+				ondelete={hasFlowReading ? () => measurements.clearFlowLog() : undefined}
 			/>
 		{/key}
 	{/if}
 
-	{#if drainDraft}
-		{#key drainDraft}
-			{@const recordId = drainDraft.recordId}
+	{#if measurements.drainDraft}
+		{#key measurements.drainDraft}
+			{@const recordId = measurements.drainDraft.recordId}
 			<DrainLogForm
-				seed={drainDraft}
-				focusMinutes={drainDraft.focusMinutes}
-				onsave={ondrainsave}
-				oncancel={ondrainclose}
-				ondelete={recordId === undefined ? undefined : () => ondraindelete(recordId)}
+				seed={measurements.drainDraft}
+				focusMinutes={measurements.drainDraft.focusMinutes}
+				onsave={measurements.saveDrainLog}
+				oncancel={measurements.closeDrainLog}
+				ondelete={recordId === undefined ? undefined : () => measurements.deleteDrainLog(recordId)}
 			/>
 		{/key}
 	{/if}

@@ -4,6 +4,7 @@
 	import { getTaskNature, type SuggestedTask } from '$lib/business/model/metric/calculation';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
 	import { buildDayTimeline } from '$lib/presentation/utils/day-timeline';
+	import type { RowMeasurements } from '$lib/presentation/utils/measurement-editor.svelte';
 
 	const task = (id: number, title: string, overrides: Partial<SuggestedTask> = {}) => {
 		const base = {
@@ -60,6 +61,21 @@
 		}),
 	];
 
+	const measurements = {
+		flowDraft: null,
+		drainLogs: [],
+		drainDraft: null,
+		openFlowLog: fn(),
+		editFlowLog: fn(),
+		closeFlowLog: fn(),
+		saveFlowLog: fn(),
+		clearFlowLog: fn(),
+		closeDrainLog: fn(),
+		saveDrainLog: fn(),
+		editDrainLog: fn(),
+		deleteDrainLog: fn(),
+	} satisfies RowMeasurements;
+
 	const { Story } = defineMeta({
 		title: 'Component/Task List',
 		component: TaskList,
@@ -81,9 +97,7 @@
 			]),
 			ontoggle: fn(),
 			onremove: fn(),
-			onflowopen: fn(),
-			onflowclose: fn(),
-			onlogflow: fn(),
+			measurementsOf: () => measurements,
 			onupdate: fn(),
 		},
 	});

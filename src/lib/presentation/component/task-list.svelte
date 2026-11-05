@@ -4,13 +4,8 @@
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 	import { toTaskEdit, type TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
-	import type {
-		DrainDraft,
-		EditorDraft,
-		EditorSource,
-	} from '$lib/presentation/utils/measurement-prompt';
+	import type { RowMeasurements } from '$lib/presentation/utils/measurement-editor.svelte';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import type { DayTimeline } from '$lib/presentation/utils/day-timeline';
 	import { getSlideDay } from '$lib/presentation/utils/slide-age';
 
@@ -55,30 +50,7 @@
 		tagVocabulary?: string[];
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
-		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
-		 *  ones, since a draft outlives the row it is keyed by. */
-		flowDrafts?: Record<number, EditorDraft>;
-		/** The viewed day's ⚡ readings in minutes, by task — one per task per day. */
-		flowLogs?: ReadonlyMap<number, number>;
-		onflowopen?: (id: number, source: EditorSource) => void;
-		/** Required, unlike the two openers, for the reason `ondrainedit` is: a
-		 *  reading is correctable on every day the list renders. */
-		onflowedit: (id: number, source: EditorSource) => void;
-		onflowclose: (id: number) => void;
-		onlogflow: (id: number, minutes: number) => void;
-		onflowdelete: (id: number) => void;
-		/** The 🪫 editors open on this list, by task. */
-		drainDrafts?: Record<number, DrainDraft>;
-		/** The viewed day's 🪫 ratings, by task — several per task is normal, since each
-		 *  row is one session (MATH.md §8.7). */
-		drainLogs?: ReadonlyMap<number, Persisted<DrainObservationRecord>[]>;
-		ondrainopen?: (id: number, source: EditorSource) => void;
-		ondrainclose: (id: number) => void;
-		ondrainsave: (id: number, entry: { hours: number; mind: number; body: number }) => void;
-		/** Required, unlike the two openers: a rating stays correctable on every day
-		 *  the list renders — see `task-row-shell.svelte`. */
-		ondrainedit: (id: number, log: Persisted<DrainObservationRecord>) => void;
-		ondraindelete: (id: number, recordId: number) => void;
+		measurementsOf: (id: number) => RowMeasurements;
 		onupdate?: (id: number, changes: TaskEdit) => void;
 		locale: string;
 		class?: string;
@@ -100,20 +72,7 @@
 		tagVocabulary,
 		ontoggle,
 		onremove,
-		flowDrafts = {},
-		flowLogs,
-		onflowopen,
-		onflowedit,
-		onflowclose,
-		onlogflow,
-		onflowdelete,
-		drainDrafts = {},
-		drainLogs,
-		ondrainopen,
-		ondrainclose,
-		ondrainsave,
-		ondrainedit,
-		ondraindelete,
+		measurementsOf,
 		onupdate,
 		locale,
 		class: className,
@@ -166,23 +125,10 @@
 			block={blocks.get(task.id)}
 			totalHours={timeline?.totalHours}
 			slideDay={getSlideDay(task.createdAt, viewedDate)}
-			flowMinutes={flowLogs?.get(task.id)}
 			{tagVocabulary}
 			{ontoggle}
 			{onremove}
-			flowDraft={flowDrafts[task.id] ?? null}
-			{onflowopen}
-			{onflowedit}
-			{onflowclose}
-			{onlogflow}
-			{onflowdelete}
-			drainDraft={drainDrafts[task.id] ?? null}
-			drainLogs={drainLogs?.get(task.id) ?? []}
-			{ondrainopen}
-			{ondrainclose}
-			{ondrainsave}
-			{ondrainedit}
-			{ondraindelete}
+			measurements={measurementsOf(task.id)}
 			{onupdate}
 			{locale}
 		/>
