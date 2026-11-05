@@ -165,6 +165,22 @@
 />
 
 <Story
+	name="With a decimal comma"
+	args={{
+		locale: 'de-DE',
+		remainingSuggestedHours: 5.25,
+		planSlackHours: 2,
+	}}
+	play={async ({ canvas }) => {
+		const header = canvas.getByText('Day Setup').closest('summary')!;
+		await expect(header).toHaveTextContent(/5,25 h planned/);
+		await expect(header).toHaveTextContent(/2,00 h free/);
+		await expect(canvas.getByText(/\+ 0,50 h switching/)).toBeVisible();
+		await expect(canvas.getByText(/^2,00h left unplanned/)).toBeVisible();
+	}}
+/>
+
+<Story
 	name="Collapsed"
 	args={{
 		isOpen: false,

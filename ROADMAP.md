@@ -1497,3 +1497,14 @@ of that fix by choice. The **M** series continues.
   (effort), `day-constraints-bar.svelte` (slack and switching hours) and `/`'s
   `+page.svelte` (remaining hours) each print `toFixed`, so a German reader gets
   "1.5" where `formatDecimals` would give "1,5".
+
+## Findings from the 2026-11-05 M129 plan
+
+Routing M129 found the Day Setup bar's other decimals, which print with no fixed
+digits and were left out of that fix by choice. The **M** series continues.
+
+- **M130 — the Day Setup bar prints five decimals raw — raised 2026-11-05.**
+  `day-constraints-bar.svelte` interpolates the budget, mind and body figures
+  and passes `String(fitted)` to the two "Use fitted X h" offers, so a German
+  reader gets "7.5". Once M129 lands that sits beside "5,25". `formatDecimals`
+  fixes the digit count, and these print as many as the value has.
