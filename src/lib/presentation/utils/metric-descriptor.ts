@@ -50,7 +50,11 @@ import {
 	getBandZenithGain,
 	type Band,
 } from '$lib/presentation/utils/band';
-import { formatDecimals, formatSignedPercent } from '$lib/presentation/utils/number-format';
+import {
+	formatDecimals,
+	formatHours,
+	formatSignedPercent,
+} from '$lib/presentation/utils/number-format';
 
 type Reading = Pick<Metric, 'value' | 'band' | 'track'>;
 
@@ -220,10 +224,12 @@ export function buildMetrics(
 								humanCapacity.limitType === 'cognitive'
 									? m.metric_type_cognitive()
 									: m.metric_type_physical(),
-							hours:
+							hours: formatHours(
 								humanCapacity.limitType === 'cognitive'
 									? pools.cognitiveHours
 									: pools.physicalHours,
+								locale,
+							),
 						}),
 			// Finite as well as planned: a pool of 0 hours carrying demand saturates
 			// to Infinity, which renders literally as "Infinity%".
@@ -254,8 +260,10 @@ export function buildMetrics(
 								capacity.limitType === 'cognitive'
 									? m.metric_type_cognitive_pool()
 									: m.metric_type_physical_pool(),
-							hours:
+							hours: formatHours(
 								capacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours,
+								locale,
+							),
 							percent: spent,
 						}),
 			// A share, not a duration: the pool is spent at wᵈ = difficultyᵈ/10, so an

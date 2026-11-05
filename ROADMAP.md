@@ -1509,8 +1509,6 @@ digits and were left out of that fix by choice. The **M** series continues.
 The read-only review of M130 found the bar's pools printed raw in a second
 place, outside that diff. The **M** series continues.
 
-- **M131 — the Human Capacity and Capacity Left descriptions print the pool
-  raw — raised 2026-11-05.** `metric-descriptor.ts` passes `pools.cognitiveHours`
-  or `pools.physicalHours` straight into `metric_human_capacity_desc` and
-  `metric_capacity_left_desc`, so a German reader reads "6.5h" there while the
-  bar reads "6,5h".
+- ~~**M131 — the Human Capacity and Capacity Left descriptions print the pool
+  raw.**~~ Fixed 2026-11-05,
+  [metric-descriptor.test.ts](src/lib/presentation/utils/metric-descriptor.test.ts).

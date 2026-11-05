@@ -645,25 +645,7 @@ describe('buildMetrics', () => {
 
 	/* The Human Capacity and Capacity Left descriptions print the binding pool in
 	   the reader's locale, as the Day Setup bar beside them already does: a German
-	   reader gets "6,5h", not "6.5h".
-
-	   Tests: the two "prints … pool in the reader's locale" tests below.
-	   Pins: "describes capacity against the pool that binds", "reads what the
-	     logged hours left of the pool they load hardest", and "keeps a whole-hour
-	     pool whole" below — en-US whole hours still read "8h".
-	   Out of scope: the file's other interpolated figures — every one is already
-	     a whole percent (`calculateHumanCapacity` rounds, `spent` is
-	     `Math.round`ed). Localizing the "h" unit.
-	   Read before building:
-	   - src/lib/presentation/utils/metric-descriptor.ts — `buildMetrics`, the
-	     `hours:` argument of `metric_human_capacity_desc` and of
-	     `metric_capacity_left_desc`; `locale` is already a parameter.
-	   - src/lib/presentation/utils/number-format.ts — `formatHours`, the bar's
-	     pool formatter (M130), the one definition of an hour figure (AGENTS.md R3).
-	   Decisions: `formatHours(…, locale)` for both, so a description and the bar
-	     print one pool alike. Rejected `formatDecimals(…, 1, locale)`, because it
-	     pads: "8.0h/day" beside the bar's "8h".
-	   Roadmap: M131 */
+	   reader gets "6,5h", not "6.5h". */
 	const fractionalPools = {
 		cognitiveHours: 6.5,
 		physicalHours: 3.5,
