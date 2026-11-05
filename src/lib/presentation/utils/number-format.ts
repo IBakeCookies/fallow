@@ -13,6 +13,18 @@ export function formatDecimals(value: number, digits: number, locale: string): s
 }
 
 /**
+ * A trim lever's budget is unrounded on purpose; only the label rounds, and
+ * only to keep "6.4167h" off the screen.
+ * `maximumFractionDigits` rather than `formatDecimals`, which pads: a whole hour
+ * reads "8h", not "8.00h".
+ */
+export function formatHours(hours: number, locale: string): string {
+	return hours.toLocaleString(locale, {
+		maximumFractionDigits: 2,
+	});
+}
+
+/**
  * A change in per cent, signed both ways: "+3.1%" and "−6.2%" have to be told
  * apart at a glance, and a bare "6.2%" reads as a gain. A tie, -0 included,
  * takes no sign.

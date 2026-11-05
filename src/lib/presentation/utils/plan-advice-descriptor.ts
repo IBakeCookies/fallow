@@ -26,7 +26,11 @@ import {
 	type Band,
 } from '$lib/presentation/utils/band';
 import { formatDuration } from '$lib/presentation/utils/duration-format';
-import { formatDecimals, formatSignedPercent } from '$lib/presentation/utils/number-format';
+import {
+	formatDecimals,
+	formatHours,
+	formatSignedPercent,
+} from '$lib/presentation/utils/number-format';
 
 /**
  * How many frontier options a row shows. A constant and not a parameter: the one
@@ -159,19 +163,6 @@ function digitsFor(readings: number[], render: (value: number) => string): numbe
 	);
 
 	return collides ? 1 : 0;
-}
-
-/**
- * The lever carries unrounded hours on purpose; only the label
- * rounds, and only to keep "6.4167h" out of the card. `maximumFractionDigits`
- * rather than `formatDecimals`, which pads: a whole-hour lever reads "8h", not
- * "8.00h". The locale owns the separator either way — a German card printing
- * "6.42h" between two German dates is what `number-format.ts` exists to stop.
- */
-function formatHours(hours: number, locale: string): string {
-	return hours.toLocaleString(locale, {
-		maximumFractionDigits: 2,
-	});
 }
 
 function formatAction(lever: AdviceLever, locale: string): string {

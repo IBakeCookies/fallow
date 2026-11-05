@@ -1500,8 +1500,17 @@ of that fix by choice. The **M** series continues.
 Routing M129 found the Day Setup bar's other decimals, which print with no fixed
 digits and were left out of that fix by choice. The **M** series continues.
 
-- **M130 — the Day Setup bar prints five decimals raw — raised 2026-11-05.**
-  `day-constraints-bar.svelte` interpolates the budget, mind and body figures
-  and passes `String(fitted)` to the two "Use fitted X h" offers, so a German
-  reader gets "7.5" beside the bar's own "5,25". `formatDecimals` fixes the
-  digit count, and these print as many as the value has.
+- ~~**M130 — the Day Setup bar prints five decimals raw.**~~ Fixed 2026-11-05,
+  with the trim lever's unrounded budget too,
+  [day-constraints-bar.stories.svelte](src/lib/presentation/component/day-constraints-bar.stories.svelte).
+
+## Findings from the 2026-11-05 M130 review
+
+The read-only review of M130 found the bar's pools printed raw in a second
+place, outside that diff. The **M** series continues.
+
+- **M131 — the Human Capacity and Capacity Left descriptions print the pool
+  raw — raised 2026-11-05.** `metric-descriptor.ts` passes `pools.cognitiveHours`
+  or `pools.physicalHours` straight into `metric_human_capacity_desc` and
+  `metric_capacity_left_desc`, so a German reader reads "6.5h" there while the
+  bar reads "6,5h".

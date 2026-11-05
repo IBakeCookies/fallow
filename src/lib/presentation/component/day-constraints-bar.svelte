@@ -3,7 +3,7 @@
 	import { cn } from '$lib/presentation/utils';
 	import { CAPACITY_POOL_MAX_HOURS } from '$lib/business/utils/capacity-pool-bounds';
 	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
-	import { formatDecimals } from '$lib/presentation/utils/number-format';
+	import { formatDecimals, formatHours } from '$lib/presentation/utils/number-format';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 
 	interface Props {
@@ -86,7 +86,9 @@
 		<div class="col-span-full flex flex-wrap gap-x-grid-xl gap-y-text-2xs lg:contents">
 			<span class="figure-cell">
 				<span class="figure"
-					>{availableHours}<span class="figure-unit">{m.unit_hour_symbol()}</span></span
+					>{formatHours(availableHours, locale)}<span class="figure-unit"
+						>{m.unit_hour_symbol()}</span
+					></span
 				>
 				{m.budget_figure_budget()}
 				<span class="text-ty-secondary tabular-nums"
@@ -103,13 +105,16 @@
 			</span>
 			<span class="figure-cell">
 				<span class="figure"
-					>{cognitivePool}<span class="figure-unit">{m.unit_hour_symbol()}</span></span
+					>{formatHours(cognitivePool, locale)}<span class="figure-unit"
+						>{m.unit_hour_symbol()}</span
+					></span
 				>
 				<span class="figure-dot bg-mind"></span>{m.budget_figure_mind()}
 			</span>
 			<span class="figure-cell">
 				<span class="figure"
-					>{physicalPool}<span class="figure-unit">{m.unit_hour_symbol()}</span></span
+					>{formatHours(physicalPool, locale)}<span class="figure-unit">{m.unit_hour_symbol()}</span
+					></span
 				>
 				<span class="figure-dot bg-body"></span>{m.budget_figure_body()}
 			</span>
@@ -194,7 +199,7 @@
 						onclick={() => (cognitivePool = fittedCognitivePool)}
 					>
 						{m.budget_use_fitted_pool({
-							hours: String(fittedCognitivePool),
+							hours: formatHours(fittedCognitivePool, locale),
 						})}
 					</button>
 				{/if}
@@ -223,7 +228,7 @@
 						onclick={() => (physicalPool = fittedPhysicalPool)}
 					>
 						{m.budget_use_fitted_pool({
-							hours: String(fittedPhysicalPool),
+							hours: formatHours(fittedPhysicalPool, locale),
 						})}
 					</button>
 				{/if}
