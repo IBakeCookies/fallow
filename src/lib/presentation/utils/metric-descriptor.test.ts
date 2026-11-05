@@ -461,6 +461,44 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe(band);
 	});
 
+	/* Longest Warm-Up prints its ϕ in the reader's locale, as Fallow Gain beside
+	   it already does: a German reader gets "1,5h", not "1.5h".
+
+	   Tests: this test.
+	   Pins: "reads a 2h warm-up funded with 2h as success" and "…with 1.5h as
+	     warning" — en-US keeps one fixed decimal, "2.0h".
+	   Out of scope: the other user-visible `toFixed` decimals (task row effort and
+	     priority score, the form preview's priority score, the 🪫 row's effort, the
+	     constraints bar's slack and switching hours, `/`'s remaining hours) — the
+	     user chose M128 alone; record them as a new ROADMAP finding at land.
+	     Localizing the "h" unit.
+	   Read before building:
+	   - src/lib/presentation/utils/metric-descriptor.ts — `buildMetrics`, the
+	     Longest Warm-Up row's `toFixed(1)`; `locale` is already a parameter.
+	   - src/lib/presentation/utils/number-format.ts — `formatDecimals`, the one
+	     definition of a fixed-precision decimal (AGENTS.md R3).
+	   Decisions: `formatDecimals(flowStateTime, 1, locale)`, keeping one fixed
+	     decimal. Rejected `maximumFractionDigits` alone, because it would turn
+	     the pinned "2.0h" into "2h".
+	   Roadmap: M128 */
+	it("prints Longest Warm-Up in the reader's locale", () => {
+		const row = buildMetrics(
+			dailyMetrics({
+				...plannedDay,
+				longestWarmUp: {
+					title: 'Design error boundary',
+					flowStateTime: 1.5,
+					suggestedHours: 2,
+				},
+			}),
+			pools,
+			null,
+			'de-DE',
+		).find((candidate) => candidate.label === m.metric_longest_warm_up());
+
+		expect(row?.value).toBe('1,5h');
+	});
+
 	// A day funds its own recovery only if the easy tasks hold their own against
 	// the hard ones. One easy task against thirty is not a recovery ratio, and
 	// banding on "easy > 0" called that day optimal.
