@@ -511,6 +511,43 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe(band);
 	});
 
+	it.each<[number, Band]>([
+		[15, 'success'],
+		[14.9, 'neutral'],
+		[5, 'neutral'],
+		[4.9, 'warning'],
+		[-0.5, 'warning'],
+	])('bands a %s% Fallow Gain as %s', (gainPercent, band) => {
+		const row = reading(
+			dailyMetrics({
+				...plannedDay,
+				zenithGain: {
+					optimized: 0,
+					naive: 0,
+					gainPercent,
+				},
+			}),
+			m.metric_zenith_gain(),
+		);
+
+		expect(row.band).toBe(band);
+	});
+
+	it.each<[number, Band]>([
+		[1, 'success'],
+		[0, 'neutral'],
+	])('bands %s quick wins as %s', (quickWins, band) => {
+		const row = reading(
+			dailyMetrics({
+				...plannedDay,
+				quickWins,
+			}),
+			m.metric_quick_wins(),
+		);
+
+		expect(row.band).toBe(band);
+	});
+
 	// Next-up, and its input is a 🪫 log: before the first one nothing has
 	// been spent to report, and a full pool is a claim about a day that may be
 	// half gone. A pool of 0 carrying a draw saturates to Infinity,

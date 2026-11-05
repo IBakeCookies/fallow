@@ -45,6 +45,9 @@ import {
 	getBandCompletion,
 	getBandDeepWork,
 	getBandFlowReached,
+	getBandQuickWins,
+	getBandRecoveryRatio,
+	getBandZenithGain,
 	type Band,
 } from '$lib/presentation/utils/band';
 
@@ -145,8 +148,6 @@ export function buildMetrics(
 
 	const spent = Math.round(capacity?.percentSpent ?? 0);
 
-	// The ratio has to hold, not merely be non-zero: one easy task against thirty
-	// hard ones is not a day that funds its own recovery.
 	const recovery: Reading =
 		recoveryRatio === null
 			? notAvailable
@@ -157,7 +158,7 @@ export function buildMetrics(
 					}
 				: {
 						value: `${recoveryRatio.easy}:${recoveryRatio.hard}`,
-						band: recoveryRatio.easy >= recoveryRatio.hard ? 'success' : 'warning',
+						band: getBandRecoveryRatio(recoveryRatio.easy, recoveryRatio.hard),
 					};
 
 	return [
@@ -172,11 +173,7 @@ export function buildMetrics(
 				// is the suboptimal side — a hardcoded plus rendered
 				// that as "+-0.5%".
 				`${zenithGain.gainPercent > 0 ? '+' : zenithGain.gainPercent < 0 ? '−' : ''}${Math.abs(zenithGain.gainPercent)}%`,
-				zenithGain.gainPercent >= 15
-					? 'success'
-					: zenithGain.gainPercent >= 5
-						? 'neutral'
-						: 'warning',
+				getBandZenithGain(zenithGain.gainPercent),
 			),
 		},
 		{
@@ -400,7 +397,7 @@ export function buildMetrics(
 			group: 'worth',
 			label: m.metric_quick_wins(),
 			description: m.metric_quick_wins_desc(),
-			...gated(hasActive, `${quickWins}`, quickWins > 0 ? 'success' : 'neutral'),
+			...gated(hasActive, `${quickWins}`, getBandQuickWins(quickWins)),
 		},
 		{
 			group: 'cost',
