@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      739-848  Posterior-aware allocation
 §6          850-862  Summary of v1 → v2 changes
 §7          864-890  Known approximations and deliberate non-changes
-§8         892-2340  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         892-2358  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      905-927  Intermittent-rest recovery correction
   §8.2      929-951  Warm-up carryover instead of binary reset
   §8.3      953-971  Verified consequences and a calibration question, closed
@@ -70,15 +70,15 @@ retype a row, regenerate:
   §8.6    1087-1151  Optimizer reliability — compound moves and drop-one seeds
   §8.7    1153-1356  Drain-rate calibration from end-of-session ratings
   §8.8    1358-1393  45-minute plan granularity
-  §8.9    1395-1449  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1451-1769  Stopping-value calibration from observed stop times
-  §8.11   1771-1932  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1934-2088  The budget curve — what the day's LENGTH is worth
-  §8.13   2090-2182  Capacity from the fitted drain rate
-  §8.14   2184-2255  Per-title drain rate — which task costs more than its sl…
-  §8.15   2257-2340  Overnight carry-over — the morning level and its anchor
-§9        2342-2404  Plan-adherence reading and its verdict band
-§10       2406-2454  References
+  §8.9    1395-1467  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1469-1787  Stopping-value calibration from observed stop times
+  §8.11   1789-1950  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1952-2106  The budget curve — what the day's LENGTH is worth
+  §8.13   2108-2200  Capacity from the fitted drain rate
+  §8.14   2202-2273  Per-title drain rate — which task costs more than its sl…
+  §8.15   2275-2358  Overnight carry-over — the morning level and its anchor
+§9        2360-2422  Plan-adherence reading and its verdict band
+§10       2424-2472  References
 ```
 
 <!-- section-index:end -->
@@ -1441,6 +1441,24 @@ code): ridge MAP toward the DEFAULT r with
 noise prior `RECOVERY_NOISE_PRIOR_STD = 0.21` (a residual compares TWO fuzzy
 ratings, so the single-rating floor 0.15 is widened by √2), Laplace posterior
 std from the Gauss–Newton curvature.
+
+**Why an hour-of-day term is bounded differently here.** §8.7's closure rests
+on the fresh-start approximation, and this law does not make it: a pair reads
+both endpoints of its break, so no start level is assumed and the model puts no
+clock structure into the residuals for a coefficient to mistake. Two other
+things bound a term on r. A pair's sensitivity,
+dD/dr = m·g·d_before·e^(−r·m·g), scales with how drained the break began, so a
+shallow break's after-rating moves little against the noise of two ratings —
+a barrier a better rater lowers. And breaks cluster on the clock, which crowds
+the design into one arc and divides whatever amplitude it reads — a barrier a
+perfect rater meets too. The null is still measured rather than assumed zero —
+the rating noise leaves a shape of its own in the residuals, which need not sit
+where a term would — and whether a term clears it, and how that depends on
+where the term peaks, is a measurement:
+`scripts/rest-circadian-residual.probe.ts`. With real rating noise nothing
+clears short of every break logged for most of a year, and nothing would read a
+time of day if it did (the plan axis carries none), so neither instrument fits
+an hour-of-day term.
 
 **UI.** A second calibration card ("Recovery Calibration") mirrors the drain
 card: ☕ inline pair editor (minutes + before/after Mind/Body), fitted

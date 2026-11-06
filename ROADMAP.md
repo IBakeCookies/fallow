@@ -499,27 +499,15 @@ cleared, so neither re-opens a refusal.
 A third, and a different question — an instrument that does not exist rather
 than a number that is not spent:
 
-47. **Whether an hour-of-day term is readable off the ☕ rest pairs.** MATH.md
-    §8.7's circadian closure is scoped to the 🪫 rows and the α fit: there the
-    fresh-start approximation manufactures the afternoon term, so the null a
-    coefficient must beat is the artefact and not zero. §8.9's law reads BOTH
-    endpoints of a break, so it assumes no starting level and produces no
-    residual of that kind, and `RestObservationRecord` carries the moment. That
-    makes the rest fit the only place in the app where the question is well-posed.
-    Three things gate it and the artefact is none of them. Pairs are sparse and
-    §8.9's skill was still climbing where α's had plateaued (item 39), so a second
-    coefficient on that ridge may clear no ceiling at all. Breaks cluster —
-    lunch, mid-afternoon — so the clock spread is plausibly WORSE than the 🪫
-    rows', which is the same way §8.7's own row filter pays. And there is no
-    consumer: the plan axis carries no time of day
-    ([presentation/AGENTS.md](src/lib/presentation/AGENTS.md)), so this lands
-    §8.14-shaped, a reading and never an input, unless a settled decision is
-    re-opened. It also inherits §8.10's first approximation — a pair's break hour
-    is `createdAt` less its length only if it was rated promptly. The ceiling
-    method is `scripts/circadian-residual.probe.ts`'s; run it over ☕ pairs before
-    anything is built. A no is the expected outcome and still worth the run: on
-    the 🪫 side the question cannot be asked, and this item is what makes the
-    difference between the two instruments a measurement instead of an argument.
+47. ~~**Whether an hour-of-day term is readable off the ☕ rest pairs.**~~ —
+    MEASURED 2026-11-06, not readable, nothing built. MATH.md §8.9,
+    [rest-circadian-residual.probe.ts](scripts/rest-circadian-residual.probe.ts).
+    The ☕ null carries no artefact of the 🪫 kind, and with real rating noise
+    a term still clears it nowhere short of every break logged for 260 days: on
+    session-gap breaks the noise hides a signal a perfect rater would see, and
+    lunch-and-afternoon breaks leave the design near-singular even for one. At
+    260 days only a term peaking where the noise's own shape sits clears, and its
+    phase cannot tell it from that shape.
 
 ## Phase 4 — multi-day horizon
 
@@ -1484,3 +1472,17 @@ place, outside that diff. The **M** series continues.
 - ~~**M131 — the Human Capacity and Capacity Left descriptions print the pool
   raw.**~~ Fixed 2026-11-05,
   [metric-descriptor.test.ts](src/lib/presentation/utils/metric-descriptor.test.ts).
+
+## Findings from the 2026-11-06 item 47 probe
+
+Item 47's a = 0 arm read §8.9's own fit, which it did not set out to measure.
+The **M** series continues.
+
+- **M132 — r̂ reads high when both ratings of a ☕ pair carry noise.** With no
+  term in the truth and noise on the before-rating as well as the after, the
+  median r̂ sits above the generator's rate on every routine and far above it on
+  lunch-and-afternoon breaks; with the noise off it falls back to the
+  quantizer's share. `scripts/energy-fit-prequential.probe.ts` differs: its
+  before-rating is exact, and drawn 1–10, so the fit never drops a pair. Not
+  attributed, and §8.7's α conditions on r̂, so it would inherit it. Figures in
+  [rest-circadian-residual.probe.ts](scripts/rest-circadian-residual.probe.ts).
