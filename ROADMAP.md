@@ -1481,4 +1481,6 @@ The **M** series continues.
 - **M132 — r̂ reads high when both ratings of a ☕ pair carry noise.**
   Attributed 2026-11-06, MATH.md §8.9,
   [recovery-fit-noise-bias.probe.ts](scripts/recovery-fit-noise-bias.probe.ts).
-  Whether §8.9 should fit the latent rate instead is open.
+  Whether §8.9 should fit the latent rate instead is open; one candidate,
+  with the rating noise assumed and with it fitted, priced the same day,
+  [recovery-fit-latent-rate.probe.ts](scripts/recovery-fit-latent-rate.probe.ts).
