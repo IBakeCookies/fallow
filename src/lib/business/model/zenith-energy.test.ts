@@ -1835,6 +1835,20 @@ describe('Zenith Energy Model', () => {
 			);
 		});
 
+		it('reads a symmetric error in the before-rating as faster recovery', () => {
+			// Errors in variables: the fit takes d_before as exact, so noise on it
+			// attenuates the decay factor — scripts/recovery-fit-noise-bias.probe.ts.
+			const exact = pair(0.7, 0.3, 1);
+
+			const noised = [-0.1, 0.1].map((error) => ({
+				...exact,
+				drainedBefore: exact.drainedBefore + error,
+			}));
+
+			expect(fitRecoveryRate([exact, exact], prior, restParams).rate).toBeCloseTo(0.7, 3);
+			expect(fitRecoveryRate(noised, prior, restParams).rate).toBeGreaterThan(0.72);
+		});
+
 		it('is deterministic', () => {
 			const obs = loggedRests(1.1, 4);
 			const a = fitRecoveryRate(obs, prior, restParams);

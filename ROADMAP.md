@@ -1478,11 +1478,7 @@ place, outside that diff. The **M** series continues.
 Item 47's a = 0 arm read §8.9's own fit, which it did not set out to measure.
 The **M** series continues.
 
-- **M132 — r̂ reads high when both ratings of a ☕ pair carry noise.** With no
-  term in the truth and noise on the before-rating as well as the after, the
-  median r̂ sits above the generator's rate on every routine and far above it on
-  lunch-and-afternoon breaks; with the noise off it falls back to the
-  quantizer's share. `scripts/energy-fit-prequential.probe.ts` differs: its
-  before-rating is exact, and drawn 1–10, so the fit never drops a pair. Not
-  attributed, and §8.7's α conditions on r̂, so it would inherit it. Figures in
-  [rest-circadian-residual.probe.ts](scripts/rest-circadian-residual.probe.ts).
+- **M132 — r̂ reads high when both ratings of a ☕ pair carry noise.**
+  Attributed 2026-11-06, MATH.md §8.9,
+  [recovery-fit-noise-bias.probe.ts](scripts/recovery-fit-noise-bias.probe.ts).
+  Whether §8.9 should fit the latent rate instead is open.
