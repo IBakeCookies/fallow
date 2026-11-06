@@ -38,8 +38,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~37k tokens at 4 chars/token; the largest
-single section is §8 at ~22k (§5 is ~5k), and most of the 28 rows below are
+The whole document is ~38k tokens at 4 chars/token; the largest
+single section is §8 at ~23k (§5 is ~5k), and most of the 28 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      739-848  Posterior-aware allocation
 §6          850-862  Summary of v1 → v2 changes
 §7          864-890  Known approximations and deliberate non-changes
-§8         892-2358  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         892-2374  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      905-927  Intermittent-rest recovery correction
   §8.2      929-951  Warm-up carryover instead of binary reset
   §8.3      953-971  Verified consequences and a calibration question, closed
@@ -70,15 +70,15 @@ retype a row, regenerate:
   §8.6    1087-1151  Optimizer reliability — compound moves and drop-one seeds
   §8.7    1153-1356  Drain-rate calibration from end-of-session ratings
   §8.8    1358-1393  45-minute plan granularity
-  §8.9    1395-1467  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1469-1787  Stopping-value calibration from observed stop times
-  §8.11   1789-1950  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1952-2106  The budget curve — what the day's LENGTH is worth
-  §8.13   2108-2200  Capacity from the fitted drain rate
-  §8.14   2202-2273  Per-title drain rate — which task costs more than its sl…
-  §8.15   2275-2358  Overnight carry-over — the morning level and its anchor
-§9        2360-2422  Plan-adherence reading and its verdict band
-§10       2424-2472  References
+  §8.9    1395-1483  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1485-1803  Stopping-value calibration from observed stop times
+  §8.11   1805-1966  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1968-2122  The budget curve — what the day's LENGTH is worth
+  §8.13   2124-2216  Capacity from the fitted drain rate
+  §8.14   2218-2289  Per-title drain rate — which task costs more than its sl…
+  §8.15   2291-2374  Overnight carry-over — the morning level and its anchor
+§9        2376-2438  Plan-adherence reading and its verdict band
+§10       2440-2488  References
 ```
 
 <!-- section-index:end -->
@@ -1441,6 +1441,22 @@ code): ridge MAP toward the DEFAULT r with
 noise prior `RECOVERY_NOISE_PRIOR_STD = 0.21` (a residual compares TWO fuzzy
 ratings, so the single-rating floor 0.15 is widened by √2), Laplace posterior
 std from the Gauss–Newton curvature.
+
+**What the fit assumes about the ratings.** The residual is taken on the
+after-rating alone, so the fit treats `d_before` as exact, though σ₀ is sized
+for two fuzzy ratings. Noise on the before-rating is errors in variables: a
+regression through the origin on a noisy regressor attenuates its slope by
+about E[d_before²] / (E[d_before²] + σ²), σ the before-rating's own noise, so
+the fitted decay factor e^(−r·m·g) reads small and r̂ reads high, more so the
+shallower the breaks start. Noise on the after-rating is unbiased until the 0
+rating floors it: where a break ends nearly recovered, the floor censors the
+noise upward, recovery reads slower and r̂ low. The shipped r̂ is the two
+netted, plus a small lift from rounding to notches, so its sign follows how
+drained breaks start and how many end nearly recovered. The fit is still the
+least-squares predictor of the typed after-rating from the typed
+before-rating, which is what §5's walk grades; the planner and the α fit read
+r̂ as the rate itself. Sizes per routine, and whether the fit's own ± covers
+the truth: `scripts/recovery-fit-noise-bias.probe.ts`.
 
 **Why an hour-of-day term is bounded differently here.** §8.7's closure rests
 on the fresh-start approximation, and this law does not make it: a pair reads
