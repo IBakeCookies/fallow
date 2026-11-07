@@ -10,6 +10,7 @@ import {
 	getBandCompletionRateDelta,
 	getBandDeepWork,
 	getBandFlowReached,
+	getBandMomentum,
 	getBandSmallerBetter,
 	getBandValueVsClassic,
 	isOutOfBand,
@@ -172,6 +173,17 @@ describe('band policy', () => {
 		[-1, 'warning'],
 	])('bands a vs-classic of %s as %s', (valueVsClassic, band) => {
 		expect(getBandValueVsClassic(valueVsClassic)).toBe(band);
+	});
+
+	// `null` is a day with no tasks: no momentum, not a stable one judged.
+	it.each<[number | null, Band]>([
+		[1, 'success'],
+		[0, 'neutral'],
+		[-0, 'neutral'],
+		[-1, 'warning'],
+		[null, 'neutral'],
+	])('bands a momentum of %s as %s', (momentum, band) => {
+		expect(getBandMomentum(momentum)).toBe(band);
 	});
 
 	// A missing entry would render `class="undefined"` — a value with no colour,

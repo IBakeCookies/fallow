@@ -247,6 +247,7 @@ test('logged hours reads against the hours planned', async ({ page }) => {
 	await seedRange(page);
 	await page.goto('/analytics');
 
+	await expect(statTile(page, 'Logged hours')).toContainText(/\b1\.5\s*hrs\b/);
 	await expect(page.getByText('of 20.8 h planned')).toBeVisible();
 	expect(await fillPercent(page, 'Logged hours')).toBe(7);
 });

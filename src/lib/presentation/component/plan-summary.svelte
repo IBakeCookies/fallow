@@ -4,10 +4,10 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { BAND_TEXT_CLASS, getBandValueVsClassic } from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
-	import { formatSignedPercent } from '$lib/presentation/utils/number-format';
+	import { formatDecimals, formatSignedPercent } from '$lib/presentation/utils/number-format';
 
 	interface Props {
-		totalOutput: string;
+		totalOutput: number;
 		/** Fractions of full as the last worked block leaves them, before the
 		 *  evening's recovery */
 		endCog: number;
@@ -15,7 +15,7 @@
 		workHours: number;
 		/** This plan against the classic allocator's, under the model's own objective, in per cent */
 		valueVsClassic: number | null;
-		/** The reader's locale tag the vs-classic percent prints in. */
+		/** The reader's locale tag the total output and the vs-classic percent print in. */
 		locale: string;
 		class?: string;
 	}
@@ -38,7 +38,7 @@
 	)}
 >
 	<div>
-		<p class="text-lg font-semibold text-ty-primary">{totalOutput}</p>
+		<p class="text-lg font-semibold text-ty-primary">{formatDecimals(totalOutput, 1, locale)}</p>
 		<p class="text-xs text-ty-silent">{m.energy_total_output()}</p>
 	</div>
 	<div>

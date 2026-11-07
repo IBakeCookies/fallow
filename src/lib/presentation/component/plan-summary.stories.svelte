@@ -8,7 +8,7 @@
 		component: PlanSummary,
 		tags: ['autodocs'],
 		args: {
-			totalOutput: '12.4',
+			totalOutput: 12.4167,
 			endCog: 0.42,
 			endPhys: 0.71,
 			workHours: 5.25,

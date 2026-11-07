@@ -13,10 +13,9 @@ export function formatDecimals(value: number, digits: number, locale: string): s
 }
 
 /**
- * A trim lever's budget is unrounded on purpose; only the label rounds, and
- * only to keep "6.4167h" off the screen.
- * `maximumFractionDigits` rather than `formatDecimals`, which pads: a whole hour
- * reads "8h", not "8.00h".
+ * An hour count at most two decimals long, whatever the value carries: an
+ * unrounded 6.4166… reads "6.42". Never padded, which is why it is not
+ * `formatDecimals`: a whole hour reads "8", not "8.00".
  */
 export function formatHours(hours: number, locale: string): string {
 	return hours.toLocaleString(locale, {

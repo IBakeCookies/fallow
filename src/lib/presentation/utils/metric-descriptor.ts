@@ -182,7 +182,11 @@ export function buildMetrics(
 			group: 'worth',
 			label: m.metric_yield_index(),
 			description: m.metric_yield_index_desc(),
-			...gated(yieldIndex !== null, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex ?? 0)),
+			...gated(
+				yieldIndex !== null,
+				`${yieldIndex}%`,
+				yieldIndex !== null ? getBandBiggerBetter(yieldIndex) : 'neutral',
+			),
 		},
 		{
 			headline: true,

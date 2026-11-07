@@ -41,11 +41,15 @@ export interface RowMeasurements {
 }
 
 export class MeasurementEditors {
-	#session: SessionStore;
-	#observations: EnergyObservationStore;
+	// `!`: the lazy $derived fields below read these, which the constructor assigns first.
+	#session!: SessionStore;
+	#observations!: EnergyObservationStore;
 	#timerStore: SessionTimerStore;
 	#flowDrafts = $state<Record<number, EditorDraft>>({});
 	#drainDrafts = $state<Record<number, DrainDraft>>({});
+	// `/energy` is today-only (`energy/+page.ts`), so the viewed day is today there.
+	#flowLogs = $derived(this.#session.flowMinutesOn(this.#session.selectedDate));
+	#drainLogs = $derived(this.#observations.drainLogsOn(this.#session.selectedDate));
 
 	constructor(
 		session: SessionStore,
@@ -137,17 +141,10 @@ export class MeasurementEditors {
 		this.closeDrainLog(taskId);
 	};
 
-	forTask = (
-		taskId: number,
-		{
-			flowMinutes,
-			drainLogs,
-			canLog,
-		}: { flowMinutes?: number; drainLogs: Persisted<DrainObservationRecord>[]; canLog: boolean },
-	): RowMeasurements => ({
-		flowMinutes,
+	buildRowMeasurements = (taskId: number, { canLog }: { canLog: boolean }): RowMeasurements => ({
+		flowMinutes: this.#flowLogs.get(taskId),
 		flowDraft: this.#flowDrafts[taskId] ?? null,
-		drainLogs,
+		drainLogs: this.#drainLogs.get(taskId) ?? [],
 		drainDraft: this.#drainDrafts[taskId] ?? null,
 		openFlowLog: canLog ? (source) => this.openFlowLog(taskId, source) : undefined,
 		editFlowLog: () => this.openFlowLog(taskId, 'button'),

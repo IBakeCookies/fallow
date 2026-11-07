@@ -3,7 +3,6 @@
 	import { logError } from '$lib/logger';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
-	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { drainPendingLine, labFitLines } from '$lib/presentation/utils/calibration-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import { MeasurementEditors } from '$lib/presentation/utils/measurement-editor.svelte';
@@ -46,8 +45,6 @@
 	} from '$lib/business/utils/energy-fit-bounds';
 
 	const VIEW_KEY = 'zenith-energy-view';
-
-	const decimal = (value: number, digits: number) => formatDecimals(value, digits, getDateLocale());
 
 	const session = getSessionStore();
 	const completedTaskIds = $derived(session.tasks.filter((t) => t.completed).map((t) => t.id));
@@ -121,10 +118,6 @@
 		editors.dropDrafts(taskId);
 		removeTaskWithUndo(session, taskId);
 	}
-
-	// This route is today-only — a dated URL redirects (`energy/+page.ts`).
-	const drainLogs = $derived(observations.drainLogsOn(session.today));
-	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
 
@@ -270,9 +263,7 @@
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}
 			plannedHours={plannedFor(task.id)}
-			measurements={editors.forTask(task.id, {
-				flowMinutes: flowLogs.get(task.id),
-				drainLogs: drainLogs.get(task.id) ?? [],
+			measurements={editors.buildRowMeasurements(task.id, {
 				canLog: true,
 			})}
 			ontoggle={() => session.toggleTask(task.id)}
@@ -379,7 +370,7 @@
 						</div>
 
 						<PlanSummary
-							totalOutput={decimal(plan.evaluation.totalOutput, 1)}
+							totalOutput={plan.evaluation.totalOutput}
 							endCog={plan.evaluation.workEndCog}
 							endPhys={plan.evaluation.workEndPhys}
 							workHours={plan.evaluation.workHours}

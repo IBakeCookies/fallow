@@ -73,9 +73,6 @@
 		moveTaskToTomorrowWithUndo(session, taskId);
 	}
 
-	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
-	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
-
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay, getDateLocale()));
 	// The two inputs every headline reading is gated on in `buildMetrics`.
@@ -268,9 +265,7 @@
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={removeTask}
 				measurementsOf={(id) =>
-					editors.forTask(id, {
-						flowMinutes: flowLogs.get(id),
-						drainLogs: drainLogs.get(id) ?? [],
+					editors.buildRowMeasurements(id, {
 						canLog,
 					})}
 				onupdate={(taskId, changes) => session.updateTask(taskId, changes)}
