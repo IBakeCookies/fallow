@@ -559,7 +559,7 @@ two answer the row's own lifecycle: ✕ then Undo restores the task under its or
 keeps them in a `MeasurementEditors` it creates for itself (`measurement-editor.svelte.ts`),
 which owns every transition — open, save, append or correct, spend the stopped reading, drop
 — so neither screen spells one. Each row is handed its readings, drafts and id-bound verbs
-as one `RowMeasurements` from `MeasurementEditors.forTask`. `measurement-prompt.ts` keeps
+as one `RowMeasurements` from `MeasurementEditors.buildRowMeasurements`. `measurement-prompt.ts` keeps
 the records one shape, `completionPromptAction` is the one prompt policy both run, and
 `EnergyObservationStore.drainLogsOn(date)` is the one answer to "what did this task measure
 that day" that both screens read their chips from.

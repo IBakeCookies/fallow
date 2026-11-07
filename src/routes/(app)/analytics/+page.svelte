@@ -25,7 +25,7 @@
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { buildMetricTrack } from '$lib/presentation/utils/metric-descriptor';
 	import { BAND_TEXT_CLASS, getBandCompletionRateDelta } from '$lib/presentation/utils/band';
-	import { formatSignedPercent } from '$lib/presentation/utils/number-format';
+	import { formatHours, formatSignedPercent } from '$lib/presentation/utils/number-format';
 	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
 	import { removeLogWithUndo } from '$lib/presentation/utils/remove-log-with-undo';
 	import { fromISO } from '$lib/business/utils/date';
@@ -133,7 +133,7 @@
 		},
 		{
 			label: m.ana_rest_hours(),
-			value: restStats === null ? '—' : restStats.hours.toLocaleString(getDateLocale()),
+			value: restStats === null ? '—' : formatHours(restStats.hours, getDateLocale()),
 			suffix: restStats === null ? '' : m.unit_hours(),
 		},
 		{
@@ -390,7 +390,7 @@
 
 			<StatTile
 				label={m.ana_logged_hours()}
-				value={loggedHours === null ? '—' : loggedHours.toLocaleString(getDateLocale())}
+				value={loggedHours === null ? '—' : formatHours(loggedHours, getDateLocale())}
 				suffix={loggedHours === null ? undefined : m.unit_hours()}
 				muted={loggedHours === null}
 				track={loggedHours === null
@@ -402,7 +402,7 @@
 						{missingReading}
 					{:else}
 						{m.ana_logged_hours_note({
-							hours: analytics.plannedHours.toLocaleString(getDateLocale()),
+							hours: formatHours(analytics.plannedHours, getDateLocale()),
 						})}
 					{/if}
 				{/snippet}

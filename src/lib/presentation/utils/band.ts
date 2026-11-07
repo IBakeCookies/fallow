@@ -154,34 +154,29 @@ export function getBandRecoveryRatio(easy: number, hard: number): Band {
 }
 
 /**
- * Three readings, not two: a rounded small loss arrives as -0, which `>= 0`
- * would read as a win. A tie is neither.
+ * A signed change in three bands, not two: a rounded small loss arrives as -0,
+ * which `>= 0` would read as a win. A tie is neither. Only the loss's severity
+ * differs per caller.
  */
-export function getBandValueVsClassic(valueVsClassic: number): Band {
-	if (valueVsClassic > 0) return 'success';
+function getBandBySign(value: number, lossBand: Band): Band {
+	if (value > 0) return 'success';
 
-	if (valueVsClassic < 0) return 'warning';
+	if (value < 0) return lossBand;
 
 	return 'neutral';
 }
 
-/** `null` (a day with no tasks) and `-0` (Math.round of a small loss) are both neutral. */
+export function getBandValueVsClassic(valueVsClassic: number): Band {
+	return getBandBySign(valueVsClassic, 'warning');
+}
+
+/** `null` is a day with no tasks. */
 export function getBandMomentum(momentum: number | null): Band {
-	if (momentum === null) return 'neutral';
-
-	if (momentum > 0) return 'success';
-
-	if (momentum < 0) return 'warning';
-
-	return 'neutral';
+	return momentum === null ? 'neutral' : getBandBySign(momentum, 'warning');
 }
 
 export function getBandCompletionRateDelta(delta: number): Band {
-	if (delta > 0) return 'success';
-
-	if (delta < 0) return 'critical';
-
-	return 'neutral';
+	return getBandBySign(delta, 'critical');
 }
 
 /**
