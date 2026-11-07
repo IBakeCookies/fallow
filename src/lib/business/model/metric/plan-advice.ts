@@ -29,6 +29,7 @@ import {
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
 import { BLOCK_HOURS, importanceWeightOf } from '$lib/business/model/zenith';
+import { clampSwitchCost } from '$lib/business/utils/switch-cost';
 
 /** One honest change to today's inputs (pools and switch cost are not levers). */
 export type AdviceLever =
@@ -563,7 +564,8 @@ function calculateSwitchCostPrice(
 	input: DailyMetricsInput,
 	baseline: DailyMetrics,
 ): SwitchCostPrice {
-	const { tasks, switchCost, pools, constants, posterior } = input;
+	const { tasks, pools, constants, posterior } = input;
+	const switchCost = clampSwitchCost(input.switchCost);
 	const budget = baseline.budgetHours;
 	const baseValue = planValueOf(baseline);
 	const reservedHours = calculatePlanSwitchHours(baseline.suggestedTasks, switchCost);

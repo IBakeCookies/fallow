@@ -51,34 +51,34 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0           86-127  Objective
-§1          129-185  Inputs and parameter mappings
-§2          187-303  Productivity curve — v2 change
-§3          305-397  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          399-488  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          490-848  Personalization — v2 change: full Bayesian posterior
-  §5.2      625-737  Recency weighting of the ϕ fit
-  §5.1      739-848  Posterior-aware allocation
-§6          850-862  Summary of v1 → v2 changes
-§7          864-890  Known approximations and deliberate non-changes
-§8         892-2374  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      905-927  Intermittent-rest recovery correction
-  §8.2      929-951  Warm-up carryover instead of binary reset
-  §8.3      953-971  Verified consequences and a calibration question, closed
-  §8.4     973-1043  Per-task satiety — concave daily value
-  §8.5    1045-1085  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1087-1151  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1153-1356  Drain-rate calibration from end-of-session ratings
-  §8.8    1358-1393  45-minute plan granularity
-  §8.9    1395-1483  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1485-1803  Stopping-value calibration from observed stop times
-  §8.11   1805-1966  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1968-2122  The budget curve — what the day's LENGTH is worth
-  §8.13   2124-2216  Capacity from the fitted drain rate
-  §8.14   2218-2289  Per-title drain rate — which task costs more than its sl…
-  §8.15   2291-2374  Overnight carry-over — the morning level and its anchor
-§9        2376-2438  Plan-adherence reading and its verdict band
-§10       2440-2488  References
+§0           86-130  Objective
+§1          132-188  Inputs and parameter mappings
+§2          190-306  Productivity curve — v2 change
+§3          308-400  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          402-492  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          494-852  Personalization — v2 change: full Bayesian posterior
+  §5.2      629-741  Recency weighting of the ϕ fit
+  §5.1      743-852  Posterior-aware allocation
+§6          854-866  Summary of v1 → v2 changes
+§7          868-894  Known approximations and deliberate non-changes
+§8         896-2378  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      909-931  Intermittent-rest recovery correction
+  §8.2      933-955  Warm-up carryover instead of binary reset
+  §8.3      957-975  Verified consequences and a calibration question, closed
+  §8.4     977-1047  Per-task satiety — concave daily value
+  §8.5    1049-1089  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1091-1155  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1157-1360  Drain-rate calibration from end-of-session ratings
+  §8.8    1362-1397  45-minute plan granularity
+  §8.9    1399-1487  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1489-1807  Stopping-value calibration from observed stop times
+  §8.11   1809-1970  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1972-2126  The budget curve — what the day's LENGTH is worth
+  §8.13   2128-2220  Capacity from the fitted drain rate
+  §8.14   2222-2293  Per-title drain rate — which task costs more than its sl…
+  §8.15   2295-2378  Overnight carry-over — the morning level and its anchor
+§9        2380-2442  Plan-adherence reading and its verdict band
+§10       2444-2492  References
 ```
 
 <!-- section-index:end -->
@@ -94,6 +94,9 @@ maximize   Σᵢ vᵢ·P̄ᵢ(tᵢ)
 subject to Σᵢ tᵢ + (m − 1)·switchCost ≤ T_budget      (m = tasks with tᵢ > 0)
            [pooled variant] Σᵢ wcᵢ·tᵢ ≤ cognitive pool,  Σᵢ wpᵢ·tᵢ ≤ physical pool
 ```
+
+`switchCost ≥ 0`: a negative or NaN entry bills as 0 (`clampSwitchCost`), so
+funding another task never adds budget.
 
 `vᵢ > 0` is the task's declared **importance**, one of three levels —
 `IMPORTANCE_WEIGHT = { low: 0.5, normal: 1, high: 2 }` — and `vᵢ = 1` for an
@@ -442,7 +445,8 @@ objective and are never offered). `Δᵢ(1)` carries the activation bonus
   forward selection, which builds its subset as it goes. That round-robins
   identical tasks into the equal split the article's sanity check demands.
 - **Switch cost (fixed charge):** a plan funding m tasks pays
-  `(m−1)·switchCost` off the budget before any block is placed. Which tasks
+  `(m−1)·switchCost` off the budget, `switchCost` floored at 0 (§0), before
+  any block is placed. Which tasks
   deserve funding is a combinatorial decision greedy can't price, so for
   n ≤ 12 we **enumerate every funded subset** (≤ 4095 subsets, most of them
   priced by a pool-free upper bound alone: greedy without pools is the exact

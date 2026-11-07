@@ -1381,6 +1381,19 @@ describe('suggestPlanAdjustments', () => {
 
 			expect(advice.switchCostPrice.reservedHours).toBe(0);
 		});
+
+		// The same mid-typing value, read as declared: priced as typed, the card printed
+		// "at -1h -30m a switch" over a bracket whose two arms solve one plan.
+		it('prices a negative switch cost as the zero it bills', () => {
+			const priceAt = (switchCost: number) =>
+				suggestPlanAdjustments(
+					input(GRIND, {
+						switchCost,
+					}),
+				).switchCostPrice;
+
+			expect(priceAt(-0.5)).toEqual(priceAt(0));
+		});
 	});
 
 	// A zero-load plan reads the display sentinel 50, which is
