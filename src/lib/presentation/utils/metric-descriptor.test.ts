@@ -650,6 +650,7 @@ describe('buildMetrics', () => {
 		cognitiveHours: 6.5,
 		physicalHours: 3.5,
 	};
+
 	const cognitiveBinds = dailyMetrics({
 		...plannedDay,
 		humanCapacity: {
@@ -657,6 +658,7 @@ describe('buildMetrics', () => {
 			limitType: 'cognitive',
 		},
 	});
+
 	const cognitiveSpent = remainingDay({
 		limitType: 'cognitive',
 		percentSpent: 40,
