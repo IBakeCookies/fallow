@@ -325,9 +325,10 @@ function armA(day: Day, cell: Cell): Solved {
 	);
 
 	return {
-		hours: allocations.map((alloc) => alloc.allocatedHours),
+		hours: allocations.map((allocation) => allocation.allocatedHours),
 		priority: allocations.map(
-			(alloc, i) => heightFactor(inputs[i].difficulty, cell) * alloc.optimalAvgProductivity,
+			(allocation, i) =>
+				heightFactor(inputs[i].difficulty, cell) * allocation.optimalAvgProductivity,
 		),
 		value: (hours) => calculateTotalProductivity(inputs, hours, CONSTANTS, POSTERIOR),
 	};
@@ -419,21 +420,21 @@ function ranks(values: number[]): number[] {
 }
 
 function spearman(x: number[], y: number[]): number {
-	const rx = ranks(x);
-	const ry = ranks(y);
+	const xRanks = ranks(x);
+	const yRanks = ranks(y);
 	// Average ranks keep the rank sum, so both means are (n − 1)/2.
 	const centre = (x.length - 1) / 2;
-	let sxy = 0;
-	let sxx = 0;
-	let syy = 0;
+	let sumXY = 0;
+	let sumXX = 0;
+	let sumYY = 0;
 
-	rx.forEach((r, i) => {
-		sxy += (r - centre) * (ry[i] - centre);
-		sxx += (r - centre) ** 2;
-		syy += (ry[i] - centre) ** 2;
+	xRanks.forEach((r, i) => {
+		sumXY += (r - centre) * (yRanks[i] - centre);
+		sumXX += (r - centre) ** 2;
+		sumYY += (yRanks[i] - centre) ** 2;
 	});
 
-	return sxy / Math.sqrt(sxx * syy);
+	return sumXY / Math.sqrt(sumXX * sumYY);
 }
 
 /** The effective difficulty with the highest priority, per enjoyment level. */
@@ -452,11 +453,11 @@ function mostValuable(priority: number[]): string {
 			].difficulty,
 	);
 
-	const lo = Math.min(...peaks);
-	const hi = Math.max(...peaks);
+	const lowest = Math.min(...peaks);
+	const highest = Math.max(...peaks);
 
-	return lo === hi
-		? `${lo.toFixed(2)} at every enjoyment`
+	return lowest === highest
+		? `${lowest.toFixed(2)} at every enjoyment`
 		: `${peaks.map((d, e) => `e${e + 1} ${d.toFixed(2)}`).join(', ')}`;
 }
 
@@ -525,7 +526,7 @@ describe('ROADMAP item 42 — what an inverted-U `a` would move', () => {
 			const inputs = toPooledInputs(day.tasks);
 
 			const hours = calculateTaskAllocations(inputs, day.budget, CONSTANTS, day.switchCost).map(
-				(alloc) => alloc.allocatedHours,
+				(allocation) => allocation.allocatedHours,
 			);
 
 			const brute = bruteForceBest(
@@ -603,7 +604,7 @@ describe('ROADMAP item 42 — what an inverted-U `a` would move', () => {
 			for (const cell of ROWS) {
 				const solved = DAYS.map((day) => arm.solve(day, cell));
 
-				const share = (changed: (s: Solved, ref: Solved) => boolean) =>
+				const share = (changed: (s: Solved, baseline: Solved) => boolean) =>
 					`${solved.filter((s, d) => changed(s, reference[d])).length}/${DAYS.length}`;
 
 				const moved = mean(
@@ -615,9 +616,9 @@ describe('ROADMAP item 42 — what an inverted-U `a` would move', () => {
 
 				console.log(
 					`[2 ${arm.name}] ${cell.label}: funded set changes ` +
-						`${share((s, ref) => s.hours.some((h, i) => h > 0 !== ref.hours[i] > 0))}, block vector ` +
-						`${share((s, ref) => s.hours.some((h, i) => h !== ref.hours[i]))}, mean hours moved ` +
-						`${moved.toFixed(4)} h/day, top task ${share((s, ref) => argmax(s.priority) !== argmax(ref.priority))}`,
+						`${share((s, baseline) => s.hours.some((h, i) => h > 0 !== baseline.hours[i] > 0))}, block vector ` +
+						`${share((s, baseline) => s.hours.some((h, i) => h !== baseline.hours[i]))}, mean hours moved ` +
+						`${moved.toFixed(4)} h/day, top task ${share((s, baseline) => argmax(s.priority) !== argmax(baseline.priority))}`,
 				);
 			}
 		}

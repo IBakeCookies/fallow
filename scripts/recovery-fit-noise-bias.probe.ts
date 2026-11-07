@@ -288,6 +288,18 @@ interface Observation {
 const noisedBefore = (pair: TruePair): number => pair.before + NOISE * pair.beforeNoise;
 const noisedAfter = (pair: TruePair): number => pair.after + NOISE * pair.afterNoise;
 
+const EXACT: Observation = {
+	label: 'exact',
+	before: (pair) => pair.before,
+	after: (pair) => pair.after,
+};
+
+const AFTER_NOISED: Observation = {
+	label: 'after noised',
+	before: (pair) => pair.before,
+	after: noisedAfter,
+};
+
 /** Through the shipped fit, which drops a 0 before-rating and clamps both to [0, 1]. */
 const SHIPPED: Observation[] = [
 	{
@@ -310,30 +322,18 @@ const SHIPPED: Observation[] = [
 		before: (pair) => notch(pair.before),
 		after: (pair) => notch(pair.after),
 	},
-	{
-		label: 'exact',
-		before: (pair) => pair.before,
-		after: (pair) => pair.after,
-	},
+	EXACT,
 ];
 
 /** Through the bare fit: one mechanism at a time, nothing rounded, nothing dropped. */
 const BARE: Observation[] = [
-	{
-		label: 'exact',
-		before: (pair) => pair.before,
-		after: (pair) => pair.after,
-	},
+	EXACT,
 	{
 		label: 'before noised',
 		before: noisedBefore,
 		after: (pair) => pair.after,
 	},
-	{
-		label: 'after noised',
-		before: (pair) => pair.before,
-		after: noisedAfter,
-	},
+	AFTER_NOISED,
 	{
 		label: 'after noised, floored',
 		before: (pair) => pair.before,
@@ -391,27 +391,30 @@ const histories = ROUTINES.map((routine) =>
 const prefix = (pairs: TruePair[], days: number): TruePair[] =>
 	pairs.filter((pair) => pair.day < days);
 
-const bareMedian = (index: number, observation: Observation, days = DAYS): number =>
-	median(histories[index].map((pairs) => fitBare(observe(prefix(pairs, days), observation))));
+const bareMedian = (
+	routineHistories: TruePair[][],
+	observation: Observation,
+	days = DAYS,
+): number =>
+	median(routineHistories.map((pairs) => fitBare(observe(prefix(pairs, days), observation))));
 
-const shippedFits = (index: number, observation: Observation, days: number): RecoveryRateFit[] =>
-	histories[index].map((pairs) => fitShipped(observe(prefix(pairs, days), observation)));
-
-const f4 = (value: number): string => value.toFixed(4);
+const shippedFits = (
+	routineHistories: TruePair[][],
+	observation: Observation,
+	days: number,
+): RecoveryRateFit[] =>
+	routineHistories.map((pairs) => fitShipped(observe(prefix(pairs, days), observation)));
 
 describe('MATH.md §8.9 — what lifts r̂ when both ratings of a ☕ pair are noised (ROADMAP M132)', () => {
 	it('self-check: exact ratings recover the generator, and after-rating noise alone is unbiased', () => {
 		for (const [index, routine] of ROUTINES.entries()) {
-			const shipped = median(
-				shippedFits(index, SHIPPED[SHIPPED.length - 1], DAYS).map((fit) => fit.rate),
-			);
-
-			const bare = bareMedian(index, BARE[0]);
-			const afterNoised = bareMedian(index, BARE[2]);
+			const shipped = median(shippedFits(histories[index], EXACT, DAYS).map((fit) => fit.rate));
+			const bare = bareMedian(histories[index], EXACT);
+			const afterNoised = bareMedian(histories[index], AFTER_NOISED);
 
 			console.log(
-				`[§8.9] self-check ${routine}, ${DAYS} days: exact ratings read shipped ${f4(shipped)}, ` +
-					`bare ${f4(bare)}; bare with after-rating noise alone ${f4(afterNoised)}, against ${TRUE_RATE}`,
+				`[§8.9] self-check ${routine}, ${DAYS} days: exact ratings read shipped ${shipped.toFixed(4)}, ` +
+					`bare ${bare.toFixed(4)}; bare with after-rating noise alone ${afterNoised.toFixed(4)}, against ${TRUE_RATE}`,
 			);
 
 			// Load-bearing: if exact ratings do not read the generator, no arm below isolates anything.
@@ -430,7 +433,7 @@ describe('MATH.md §8.9 — what lifts r̂ when both ratings of a ☕ pair are n
 				histories[index].flat().length;
 
 			console.log(
-				`[§8.9]   ${routine.padEnd(10)} ${BARE.map((arm) => f4(bareMedian(index, arm))).join('  ')}` +
+				`[§8.9]   ${routine.padEnd(10)} ${BARE.map((arm) => bareMedian(histories[index], arm).toFixed(4)).join('  ')}` +
 					`  — a noised after-rating falls below 0 in ${(100 * floored).toFixed(1)}%`,
 			);
 		}
@@ -446,15 +449,15 @@ describe('MATH.md §8.9 — what lifts r̂ when both ratings of a ☕ pair are n
 		for (const [index, routine] of ROUTINES.entries()) {
 			for (const days of VOLUMES) {
 				const cells = SHIPPED.map((arm) => {
-					const fits = shippedFits(index, arm, days);
+					const fits = shippedFits(histories[index], arm, days);
 
 					const covered = fits.filter(
 						(fit) => Math.abs(fit.rate - TRUE_RATE) <= 2 * (fit.rateStd ?? 0),
 					).length;
 
 					return (
-						`${f4(median(fits.map((fit) => fit.rate)))} ` +
-						`(${f4(median(fits.map((fit) => fit.rateStd ?? Number.NaN)))}, ${covered}/${SEEDS})`
+						`${median(fits.map((fit) => fit.rate)).toFixed(4)} ` +
+						`(${median(fits.map((fit) => fit.rateStd ?? Number.NaN)).toFixed(4)}, ${covered}/${SEEDS})`
 					);
 				});
 

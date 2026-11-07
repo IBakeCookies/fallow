@@ -1484,3 +1484,18 @@ The **M** series continues.
   Whether §8.9 should fit the latent rate instead is open; one candidate,
   with the rating noise assumed and with it fitted, priced the same day,
   [recovery-fit-latent-rate.probe.ts](scripts/recovery-fit-latent-rate.probe.ts).
+
+## Findings from the 2026-11-07 branch review
+
+Reviewing the four probes items 42 and 47 added found one copy its fixes could
+not fold. The **M** series continues.
+
+- **M133 — three ☕ probes copy one break generator.** Open 2026-11-07.
+  [rest-circadian-residual.probe.ts](scripts/rest-circadian-residual.probe.ts),
+  [recovery-fit-noise-bias.probe.ts](scripts/recovery-fit-noise-bias.probe.ts)
+  and
+  [recovery-fit-latent-rate.probe.ts](scripts/recovery-fit-latent-rate.probe.ts)
+  each define `mulberry32`, `gaussian`, `sessionsOf`, `stepBlock` and
+  `synthesize`, kept seed for seed alike by hand. No folder may hold a module
+  only probes import: eslint bans relative imports in `scripts/`, and `$lib` is
+  app code. Open until a rule names that home, or the copy is accepted.
