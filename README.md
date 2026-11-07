@@ -40,31 +40,30 @@ Each task is described by three things you feel intuitively:
 - **Enjoyment** (`β`) — how much you like doing it
 - **Time to flow** (`ϕ`) — how long before you hit the zone
 
-These shape the curve: enjoyable, low-effort tasks start productive (`p(0) = p₀`
-really holds — a v2 fix over the article's curve); hard, unpleasant ones start
-slow but peak higher. There's a mathematically optimal point to stop each task —
-between 1.5194×ϕ and 1.7933×ϕ depending on the task, and earlier still while
-Fallow is unsure of your ϕ — because working past it makes your _average_
-productivity for that task fall.
+These shape the curve: enjoyable, low-effort tasks start productive
+(`p(0) = p₀`); hard ones start slow but peak higher. There's a mathematically
+optimal point to stop each task — between 1.5194×ϕ and 1.7933×ϕ depending on
+the task, and earlier still while Fallow is unsure of your ϕ — because working
+past it makes your _average_ productivity for that task fall.
 
 Fallow takes your whole task list and finds the allocation `⟨t₁, t₂, … tₙ⟩` that
-maximizes the sum of average productivities. Plans are built in **15-minute
-blocks**: greedy marginal analysis over block values, with an exhaustive search
-over which tasks deserve funding at all once context-switch costs are charged.
-Against your hours alone that is exact for up to 12 tasks, and past that
-whenever your day, list and switch cost together keep the search bounded; once
-the energy pools bind too it reaches the optimum on ~94% of days and lands
-within a few per cent on the rest. Then
-Fallow reports how much better that is than an equal split. (Full derivations:
-[MATH.md](MATH.md).)
+maximizes the importance-weighted sum of average productivities. Plans are built
+in **15-minute blocks**: greedy marginal analysis over block values, with an
+exhaustive search over which tasks deserve funding at all once context-switch
+costs are charged. Against your hours alone that is exact for up to 12 tasks,
+and past that whenever your day, list and switch cost together keep the search
+bounded; once the energy pools bind too it reaches the optimum on ~94% of days
+and lands within a few per cent on the rest. Then Fallow reports how much better
+that is than an equal split. (Full derivations: [MATH.md](MATH.md).)
 
 ## What Fallow adds on top of the article
 
 - **A revised curve and per-task stopping times (model v2).** The article's
-  curve forced `p(0) = 0`, contradicting its own "initial productivity" story;
-  v2 uses a curve where `p(0) = p₀` truly holds, which makes the optimal
-  stopping point task-dependent (1.5194–1.7933 × ϕ) instead of a universal
-  constant. See [MATH.md](MATH.md) §2–3.
+  curve never decays below its starting level — no burnout tail — and gives a
+  task that is slow to reach flow a higher peak; v2 starts at `p₀`, decays to 0
+  and holds the peak independent of ϕ, which makes the optimal stopping point
+  task-dependent (1.5194–1.7933 × ϕ) instead of a universal constant. See
+  [MATH.md](MATH.md) §2–3.
 - **Dual energy pools.** Cognitive and physical fatigue are separate systems.
   "6h of coding" saturates your ~4h/day of intense mental work, but "4h coding +
   2h gym" fits — the physical hours draw on a different pool. The allocator
@@ -81,7 +80,7 @@ Fallow reports how much better that is than an equal split. (Full derivations:
 - **Personalization from your own data.** Log how long a task really took to
   reach flow (the ⚡ button, stopwatch-style) and Fallow refits your personal
   constants (`c₁, c₂, c₃`) with a Bayesian linear regression — anchored to the
-  article's defaults, sharpening as you log more, and aware of how uncertain
+  default constants, sharpening as you log more, and aware of how uncertain
   its own predictions still are.
 - **A dashboard of derived metrics.** Fallow Gain, Burnout Risk, Flow Coverage,
   Cognitive/Physical Load, Energy Balance, Friction Index, Recovery Ratio, and
@@ -95,9 +94,10 @@ Fallow reports how much better that is than an equal split. (Full derivations:
 ## How you use it
 
 1. Add tasks. For each, set **physical difficulty**, **mental difficulty**, and
-   **enjoyment** on 1–10 sliders. Start typing a title you have rated on an
-   earlier day and it appears in a list under the field — pick it and all three
-   sliders come back the way you last set them, still yours to adjust.
+   **enjoyment** on 1–10 sliders, and optionally an **importance** (low, normal
+   or high). Start typing a title you have rated on an earlier day and it
+   appears in a list under the field — pick it and all three sliders come back
+   the way you last set them, still yours to adjust.
 2. Set your **available hours** for the day, and optionally tune your
    cognitive/physical capacity pools and switch cost.
 3. Fallow suggests how many hours to give each task, what order to do them in,
@@ -123,8 +123,7 @@ account, no server, works offline.
   deletable.
 - **`/energy` — the Energy Lab.** The model with its lid off: the constants
   fitted from your logs and how sure it is of them, per-task what-ifs against
-  the real plan, and the switch that resets personalization to the article's
-  defaults.
+  the real plan, and the button that resets its parameters to the defaults.
 
 The nav menu carries the data controls from any page — export a backup file,
 import one back, or delete everything. Theme, language (five translations) and
