@@ -8,6 +8,7 @@ import type {
 	SavedRoutine,
 	FlowObservationRecord,
 } from '$lib/data/type';
+import type { Undo } from '$lib/business/type';
 import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
@@ -1028,7 +1029,7 @@ export class SessionStore {
 	 * happens only after the destination write lands. Returns its way back, as the
 	 * carry does — the lever's toast runs it.
 	 */
-	async moveTaskToTomorrow(id: number): Promise<(() => Promise<void>) | undefined> {
+	async moveTaskToTomorrow(id: number): Promise<Undo | undefined> {
 		if (!this.#canEditPlan) return undefined;
 
 		// A past day's tomorrow is another finished day.
@@ -1090,7 +1091,7 @@ export class SessionStore {
 	 * refuses every call after the first. A COPY: the day it left keeps its rows,
 	 * which is what stops the count offering them again (`#carryableTasks`).
 	 */
-	async carryUnfinishedToTomorrow(): Promise<(() => Promise<void>) | undefined> {
+	async carryUnfinishedToTomorrow(): Promise<Undo | undefined> {
 		if (this.#moving) return undefined;
 
 		// Empty under every guard the single move checks, so this is those guards too.
@@ -1456,7 +1457,7 @@ export class SessionStore {
 	// this store does not hold (a second click on a ✕ whose row is already gone, which
 	// must not delete blind either), and a delete that failed — the record is still
 	// there, and the banner already says the write did not land.
-	async deleteFlowLog(id: number): Promise<(() => Promise<void>) | undefined> {
+	async deleteFlowLog(id: number): Promise<Undo | undefined> {
 		const dropped = this.#flowObservations.find((observation) => observation.id === id);
 
 		if (!dropped) return undefined;
@@ -1496,7 +1497,7 @@ export class SessionStore {
 	//
 	// The undo comes back out with it, on the same contract: the address a drop arrived
 	// by is no reason for it to be reversible on one screen and permanent on the other.
-	async clearFlowLog(id: number): Promise<(() => Promise<void>) | undefined> {
+	async clearFlowLog(id: number): Promise<Undo | undefined> {
 		const record = this.#flowLogFor(id, this.#selectedDate);
 
 		if (!record) return undefined;

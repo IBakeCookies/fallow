@@ -34,10 +34,10 @@ import {
 	toPhysicalDrainObservations,
 	toRestObservations,
 } from '$lib/business/model/energy-calibration';
+import { FIT_DECIMALS } from '$lib/business/utils/energy-fit-bounds';
 
 const CONTEXT_KEY = Symbol();
-/** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
-const round2 = (x: number) => Math.round(x * 100) / 100;
+const roundFit = (x: number) => Math.round(x * 10 ** FIT_DECIMALS) / 10 ** FIT_DECIMALS;
 
 /**
  * Whether two published drafts would price the same. Every field of `DraftTask`
@@ -110,19 +110,12 @@ export class EnergyPlanStore {
 	}
 
 	/**
-	 * The day window IS the session's budget — one value, no lab-local override
-	 * (settled 2026-07-29: neither mode owns the day, so neither owns the hours).
-	 * Read-only here: the route writes `session.availableHours`, the same way it
-	 * writes every other session field on this page, which keeps this store's
-	 * "never writes the daily session" true (business/AGENTS.md).
+	 * The session's budget, read-only (business/AGENTS.md, "The Lab's two stores
+	 * never write to the daily session").
 	 *
 	 * Private, and deliberately not re-exported: it transforms nothing, so a getter
 	 * would let the route read the window off this store while writing it to the
 	 * session — one value on two objects. The route reads `session.availableHours`.
-	 *
-	 * No `|| 8` fallback. A fresh day genuinely has no budget yet, and inventing
-	 * one here would render a window the main page does not have — the fork this
-	 * change exists to remove. The plan card says so instead.
 	 */
 	#windowHours = $derived(this.#session.availableHours);
 
@@ -501,18 +494,18 @@ export class EnergyPlanStore {
 
 	#drainFitApplied = $derived(
 		(!this.#cognitiveDrainFit.fitted ||
-			Math.abs(this.#lab.params.alphaCog - round2(this.#cognitiveDrainFit.alpha)) < 1e-9) &&
+			Math.abs(this.#lab.params.alphaCog - roundFit(this.#cognitiveDrainFit.alpha)) < 1e-9) &&
 			(!this.#physicalDrainFit.fitted ||
-				Math.abs(this.#lab.params.alphaPhys - round2(this.#physicalDrainFit.alpha)) < 1e-9),
+				Math.abs(this.#lab.params.alphaPhys - roundFit(this.#physicalDrainFit.alpha)) < 1e-9),
 	);
 
 	#applyDrainFit() {
 		if (this.#cognitiveDrainFit.fitted) {
-			this.#lab.setParam('alphaCog', round2(this.#cognitiveDrainFit.alpha));
+			this.#lab.setParam('alphaCog', roundFit(this.#cognitiveDrainFit.alpha));
 		}
 
 		if (this.#physicalDrainFit.fitted) {
-			this.#lab.setParam('alphaPhys', round2(this.#physicalDrainFit.alpha));
+			this.#lab.setParam('alphaPhys', roundFit(this.#physicalDrainFit.alpha));
 		}
 	}
 
@@ -538,12 +531,12 @@ export class EnergyPlanStore {
 
 	#recoveryFitApplied = $derived(
 		!this.#recoveryFit.fitted ||
-			Math.abs(this.#lab.params.recoveryRate - round2(this.#recoveryFit.rate)) < 1e-9,
+			Math.abs(this.#lab.params.recoveryRate - roundFit(this.#recoveryFit.rate)) < 1e-9,
 	);
 
 	#applyRecoveryFit() {
 		if (this.#recoveryFit.fitted)
-			this.#lab.setParam('recoveryRate', round2(this.#recoveryFit.rate));
+			this.#lab.setParam('recoveryRate', roundFit(this.#recoveryFit.rate));
 	}
 
 	// ----- Stopping calibration (λ₀ fit from finished days) -----
@@ -567,12 +560,12 @@ export class EnergyPlanStore {
 
 	#stoppingFitApplied = $derived(
 		!this.#stoppingFit.fitted ||
-			Math.abs(this.#lab.params.freeTimeValue - round2(this.#stoppingFit.value)) < 1e-9,
+			Math.abs(this.#lab.params.freeTimeValue - roundFit(this.#stoppingFit.value)) < 1e-9,
 	);
 
 	#applyStoppingFit() {
 		if (this.#stoppingFit.fitted)
-			this.#lab.setParam('freeTimeValue', round2(this.#stoppingFit.value));
+			this.#lab.setParam('freeTimeValue', roundFit(this.#stoppingFit.value));
 	}
 
 	// ----- Adopting the fits (one operation, because the order is the math) -----
@@ -599,11 +592,8 @@ export class EnergyPlanStore {
 	/**
 	 * Copy every fit into the sliders, in the ONE order the model admits (business/model/AGENTS.md
 	 * / MATH.md §8.7/§8.9/§8.10): r first, then α conditioned on it, then λ₀ on
-	 * both. The three used to be three buttons, and any order but this one left a
-	 * parameter stale — apply α then r and the α just adopted was fitted against
-	 * the old recovery, with nothing on screen to say so. Applying separately is no
-	 * longer reachable: each step reads the fits re-derived under the step before
-	 * it, so this lands on the fixed point in one press.
+	 * both. Each step reads the fits re-derived under the step before it, so this
+	 * lands on the fixed point in one press.
 	 */
 	applyFits() {
 		this.#applyRecoveryFit();

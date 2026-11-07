@@ -1,3 +1,4 @@
+import type { Undo } from '$lib/business/type';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 import type { LogKind } from '$lib/presentation/utils/log-history';
@@ -58,7 +59,7 @@ export async function removeFlowLogWithUndo(session: SessionStore, taskId: numbe
  * the storage refused (the banner says so). Neither has anything to restore, and a
  * button claiming otherwise would write the record back on top of itself.
  */
-function offerBack(undo: (() => Promise<void>) | undefined) {
+function offerBack(undo: Undo | undefined) {
 	if (!undo) return;
 
 	showUndoToast(m.ana_logs_remove_toast(), m.common_undo(), undo);

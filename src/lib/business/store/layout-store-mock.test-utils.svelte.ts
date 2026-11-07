@@ -1,7 +1,8 @@
 /**
- * Test-only stand-ins for the two stores the Energy Lab reads, so a spec can
- * drive the logs and the day window directly. Reactive, so assigning a field
- * re-runs the Lab's deriveds. Lives in a `.svelte.ts` file because the spec
+ * Test-only stand-ins for the layout's session and observation stores and the
+ * live clock, which the Energy Lab's and both plan stores' specs read, so a spec
+ * can drive the logs and the day window directly. Reactive, so assigning a field
+ * re-runs the store's deriveds. Lives in a `.svelte.ts` file because the spec
  * itself is not compiled with runes.
  */
 

@@ -14,7 +14,7 @@ import {
 	mockObservations,
 	mockSession,
 	restRecord,
-} from '$lib/business/store/energy-lab-store.test-utils.svelte';
+} from '$lib/business/store/layout-store-mock.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/session-history';
 import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
@@ -59,7 +59,7 @@ vi.mock('$lib/business/model/zenith-energy', async (importOriginal) => {
 // The Lab reads the wall clock through `liveNow` (beside `liveToday`), so the
 // spec owns it: `mockClock.now` is what the store sees, reactive, resting at 0.
 vi.mock('$lib/business/state/today.svelte', async () => {
-	const { mockClock } = await import('$lib/business/store/energy-lab-store.test-utils.svelte');
+	const { mockClock } = await import('$lib/business/store/layout-store-mock.test-utils.svelte');
 
 	return {
 		liveToday: {

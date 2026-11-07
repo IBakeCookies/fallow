@@ -5,7 +5,7 @@
 	import {
 		mockObservations,
 		mockSession,
-	} from '$lib/business/store/energy-lab-store.test-utils.svelte';
+	} from '$lib/business/store/layout-store-mock.test-utils.svelte';
 	import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 	import type { SessionStore } from '$lib/business/store/session-store.svelte';
 	import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
