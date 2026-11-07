@@ -53,7 +53,9 @@ const { chromium } = require('playwright');
 - All data is client-side IndexedDB — a fresh headless profile starts
   empty. Seed today the way `e2e/helpers.ts` does: `addTask` (the title field
   is in the dialog behind `Add task`), then `setBudget` — the headline readings
-  stay N/A until the day has hours — then wait ~400ms for the auto-save.
+  stay N/A until the day has hours — then wait out the debounced auto-save
+  on `AUTOSAVE_DEBOUNCE_MS` / `e2e/helpers.ts`'s `AUTOSAVE_MS`, never a
+  literal.
 - The viewed day derives from the URL: `/` = today, `/?date=YYYY-MM-DD` =
   history (invalid/future dates fall back to today). Past-day view shows
   the "Viewing a past day" banner and an amber date label in the nav.
