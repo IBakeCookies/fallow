@@ -429,12 +429,13 @@ function complementaryErrorFunction(x: number): number {
 	return x >= 0 ? value : 2 - value;
 }
 
-const normalCdf = (z: number): number => 0.5 * complementaryErrorFunction(-z / Math.SQRT2);
+const normalCumulativeDistribution = (z: number): number =>
+	0.5 * complementaryErrorFunction(-z / Math.SQRT2);
 
 /** P(stored notch n | true drained fraction v): Gaussian noise at std σ, rounded, clamped to 0–10. */
 function notchProbability(n: number, v: number, sigma: number): number {
-	const upper = n === 10 ? 1 : normalCdf(((n + 0.5) / 10 - v) / sigma);
-	const lower = n === 0 ? 0 : normalCdf(((n - 0.5) / 10 - v) / sigma);
+	const upper = n === 10 ? 1 : normalCumulativeDistribution(((n + 0.5) / 10 - v) / sigma);
+	const lower = n === 0 ? 0 : normalCumulativeDistribution(((n - 0.5) / 10 - v) / sigma);
 
 	return Math.max(upper - lower, Number.MIN_VALUE);
 }
@@ -620,8 +621,6 @@ const median = (values: number[]): number =>
 const rootMeanSquare = (values: number[]): number =>
 	Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
 
-const f4 = (value: number): string => value.toFixed(4);
-
 const histories = ROUTINES.map((routine) =>
 	Array.from(
 		{
@@ -634,37 +633,33 @@ const histories = ROUTINES.map((routine) =>
 const prefix = (pairs: TruePair[], days: number): TruePair[] =>
 	pairs.filter((pair) => pair.day < days);
 
-/** Both estimators on identical rows, per seed: errors against the generator's r. */
-function compare(index: number, noise: number, days: number): string {
-	const shipped: number[] = [];
-	const latent: number[] = [];
-
-	for (const pairs of histories[index]) {
-		const rows = observe(prefix(pairs, days), noise);
-		shipped.push(fitShipped(rows) - TRUE_RATE);
-		latent.push(fitLatent(rows).rate - TRUE_RATE);
-	}
-
-	const closer = latent.filter((error, seed) => Math.abs(error) < Math.abs(shipped[seed])).length;
-
-	return (
-		`B median error ${f4(median(shipped))}, rms ${f4(rootMeanSquare(shipped))} | ` +
-		`A median error ${f4(median(latent))}, rms ${f4(rootMeanSquare(latent))} | ` +
-		`A closer on ${closer}/${SEEDS}`
-	);
+interface SeedErrors {
+	shipped: number[];
+	latent: number[];
+	noises: number[];
+	closer: number;
 }
 
-/** A′ on the same rows, per seed: its errors, its fitted noise, and how often it lands closer than B. */
-function compareNoiseFitted(index: number, noise: number, days: number): string {
+/**
+ * B and the candidate (A, or A′ `withNoiseFit`) on identical rows, per seed:
+ * errors against the generator's r, the candidate's noise, and how often it
+ * lands closer than B.
+ */
+function collectErrors(
+	routineHistories: TruePair[][],
+	noise: number,
+	days: number,
+	withNoiseFit = false,
+): SeedErrors {
 	const shipped: number[] = [];
 	const latent: number[] = [];
 	const noises: number[] = [];
 
-	for (const pairs of histories[index]) {
+	for (const pairs of routineHistories) {
 		const rows = observe(prefix(pairs, days), noise);
 
 		const fit = fitLatent(rows, {
-			withNoiseFit: true,
+			withNoiseFit,
 		});
 
 		shipped.push(fitShipped(rows) - TRUE_RATE);
@@ -672,15 +667,27 @@ function compareNoiseFitted(index: number, noise: number, days: number): string 
 		noises.push(fit.noise);
 	}
 
-	const closer = latent.filter((error, seed) => Math.abs(error) < Math.abs(shipped[seed])).length;
+	return {
+		shipped,
+		latent,
+		noises,
+		closer: latent.filter((error, seed) => Math.abs(error) < Math.abs(shipped[seed])).length,
+	};
+}
 
+const formatComparison = ({ shipped, latent, closer }: SeedErrors): string =>
+	`B median error ${median(shipped).toFixed(4)}, rms ${rootMeanSquare(shipped).toFixed(4)} | ` +
+	`A median error ${median(latent).toFixed(4)}, rms ${rootMeanSquare(latent).toFixed(4)} | ` +
+	`A closer on ${closer}/${SEEDS}`;
+
+function formatNoiseFitted({ latent, noises, closer }: SeedErrors): string {
 	const onBound = noises.filter(
 		(value) => value < NOISE_FIT_MIN + 1e-3 || value > NOISE_FIT_MAX - 1e-3,
 	).length;
 
 	return (
-		`A′ median error ${f4(median(latent))}, rms ${f4(rootMeanSquare(latent))}, ` +
-		`σ̂ median ${f4(median(noises))}, on a bound ${onBound}/${SEEDS} | ` +
+		`A′ median error ${median(latent).toFixed(4)}, rms ${rootMeanSquare(latent).toFixed(4)}, ` +
+		`σ̂ median ${median(noises).toFixed(4)}, on a bound ${onBound}/${SEEDS} | ` +
 		`A′ closer than B on ${closer}/${SEEDS}`
 	);
 }
@@ -712,8 +719,8 @@ describe('MATH.md §8.9 — a latent-rate fit against the shipped one (ROADMAP M
 			const worst = Math.max(...settled);
 
 			console.log(
-				`[§8.9] self-check ${routine}, ${DAYS} days: true-weights r̂ ${f4(oracle)} against ${TRUE_RATE}; ` +
-					`${ROUNDS} against ${3 * ROUNDS} rounds differ by at most ${f4(worst)} over ${CONVERGENCE_SEEDS} seeds`,
+				`[§8.9] self-check ${routine}, ${DAYS} days: true-weights r̂ ${oracle.toFixed(4)} against ${TRUE_RATE}; ` +
+					`${ROUNDS} against ${3 * ROUNDS} rounds differ by at most ${worst.toFixed(4)} over ${CONVERGENCE_SEEDS} seeds`,
 			);
 
 			// Load-bearing: a likelihood that misses r when told w cannot be graded on whether it finds w.
@@ -753,8 +760,8 @@ describe('MATH.md §8.9 — a latent-rate fit against the shipped one (ROADMAP M
 				const worst = Math.max(...settled);
 
 				console.log(
-					`[§8.9] self-check A′ noise ${noise} ${routine}, ${DAYS} days: true-weights r̂ ${f4(rate)}, σ̂ ${f4(sigma)}; ` +
-						`${ROUNDS} against ${3 * ROUNDS} rounds differ by at most ${f4(worst)} over ${CONVERGENCE_SEEDS} seeds`,
+					`[§8.9] self-check A′ noise ${noise} ${routine}, ${DAYS} days: true-weights r̂ ${rate.toFixed(4)}, σ̂ ${sigma.toFixed(4)}; ` +
+						`${ROUNDS} against ${3 * ROUNDS} rounds differ by at most ${worst.toFixed(4)} over ${CONVERGENCE_SEEDS} seeds`,
 				);
 
 				expect(Math.abs(rate - TRUE_RATE)).toBeLessThan(0.02);
@@ -768,7 +775,7 @@ describe('MATH.md §8.9 — a latent-rate fit against the shipped one (ROADMAP M
 			for (const [index, routine] of ROUTINES.entries())
 				for (const days of VOLUMES)
 					console.log(
-						`[§8.9] noise ${noise} ${routine.padEnd(10)}${String(days).padStart(4)} days: ${compare(index, noise, days)}`,
+						`[§8.9] noise ${noise} ${routine.padEnd(10)}${String(days).padStart(4)} days: ${formatComparison(collectErrors(histories[index], noise, days))}`,
 					);
 		});
 
@@ -777,7 +784,7 @@ describe('MATH.md §8.9 — a latent-rate fit against the shipped one (ROADMAP M
 			for (const [index, routine] of ROUTINES.entries())
 				for (const days of VOLUMES)
 					console.log(
-						`[§8.9] A′ noise ${noise} ${routine.padEnd(10)}${String(days).padStart(4)} days: ${compareNoiseFitted(index, noise, days)}`,
+						`[§8.9] A′ noise ${noise} ${routine.padEnd(10)}${String(days).padStart(4)} days: ${formatNoiseFitted(collectErrors(histories[index], noise, days, true))}`,
 					);
 	});
 });

@@ -132,7 +132,7 @@
  * at 40, against 0.7; noiseless, 0.7184 / 0.7191 / 0.7152. The rating noise
  * lifts r̂, most on the clustered routine. `energy-fit-prequential.probe.ts`
  * differs: its before-rating is exact, and drawn 1–10, so the fit never drops a
- * pair. Attributed in `recovery-fit-noise-bias.probe.ts`.
+ * pair.
  *
  * WHAT WOULD FALSIFY WHAT. If the noiseless null had kept a clock shape, the
  * rest law would carry an artefact too and the ceiling would be the model's; it

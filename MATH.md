@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      743-852  Posterior-aware allocation
 §6          854-866  Summary of v1 → v2 changes
 §7          868-894  Known approximations and deliberate non-changes
-§8         896-2378  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         896-2377  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      909-931  Intermittent-rest recovery correction
   §8.2      933-955  Warm-up carryover instead of binary reset
   §8.3      957-975  Verified consequences and a calibration question, closed
@@ -70,15 +70,15 @@ retype a row, regenerate:
   §8.6    1091-1155  Optimizer reliability — compound moves and drop-one seeds
   §8.7    1157-1360  Drain-rate calibration from end-of-session ratings
   §8.8    1362-1397  45-minute plan granularity
-  §8.9    1399-1487  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1489-1807  Stopping-value calibration from observed stop times
-  §8.11   1809-1970  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1972-2126  The budget curve — what the day's LENGTH is worth
-  §8.13   2128-2220  Capacity from the fitted drain rate
-  §8.14   2222-2293  Per-title drain rate — which task costs more than its sl…
-  §8.15   2295-2378  Overnight carry-over — the morning level and its anchor
-§9        2380-2442  Plan-adherence reading and its verdict band
-§10       2444-2492  References
+  §8.9    1399-1486  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1488-1806  Stopping-value calibration from observed stop times
+  §8.11   1808-1969  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1971-2125  The budget curve — what the day's LENGTH is worth
+  §8.13   2127-2219  Capacity from the fitted drain rate
+  §8.14   2221-2292  Per-title drain rate — which task costs more than its sl…
+  §8.15   2294-2377  Overnight carry-over — the morning level and its anchor
+§9        2379-2441  Plan-adherence reading and its verdict band
+§10       2443-2491  References
 ```
 
 <!-- section-index:end -->
@@ -1475,8 +1475,7 @@ perfect rater meets too. The null is still measured rather than assumed zero —
 the rating noise leaves a shape of its own in the residuals, which need not sit
 where a term would — and whether a term clears it, and how that depends on
 where the term peaks, is a measurement:
-`scripts/rest-circadian-residual.probe.ts`. With real rating noise nothing
-clears short of every break logged for most of a year, and nothing would read a
+`scripts/rest-circadian-residual.probe.ts`, and nothing would read a
 time of day if it did (the plan axis carries none), so neither instrument fits
 an hour-of-day term.
 
