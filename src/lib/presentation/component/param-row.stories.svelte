@@ -66,7 +66,10 @@
 <Story
 	name="With a fit"
 	args={{
-		fit: '≈ 1.21 ± 0.18 · n=18',
+		fit: {
+			text: '≈ 1.21 ± 0.18 · n=18',
+			hasSignal: true,
+		},
 	}}
 	play={async ({ canvas }) => {
 		// What the user's own logs fit, beside the stepper it would replace, so `Apply my fits`
@@ -82,7 +85,10 @@
 <Story
 	name="No signal"
 	args={{
-		fit: null,
+		fit: {
+			text: 'no informative ratings',
+			hasSignal: false,
+		},
 	}}
 	play={async ({ canvas }) => {
 		// Logged, but nothing in them separates this parameter from the default: a fit that failed is
@@ -98,13 +104,16 @@
 <Story
 	name="Logs pending"
 	args={{
-		fit: null,
-		pending: '1 rating logged today, counted from tomorrow',
+		fit: {
+			text: 'no informative ratings',
+			hasSignal: false,
+		},
+		pending: '1 🪫 logged today, counted from tomorrow',
 	}}
 	play={async ({ canvas }) => {
 		// Logged today, so the fit has not read it yet: named on the row, or a rating that left the
 		// reading unmoved reads as lost
-		await expect(canvas.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+		await expect(canvas.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible();
 	}}
 >
 	{#snippet template(args)}

@@ -103,7 +103,7 @@
 		// counts only the ratings the fit read.
 		await expect(canvas.getByText('4')).toBeVisible();
 		await expect(canvas.getByText(/Drain rates personalized from 3 ratings/)).toBeVisible();
-		await expect(canvas.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+		await expect(canvas.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible();
 	}}
 />
 
@@ -115,6 +115,6 @@
 	}}
 	play={async ({ canvas }) => {
 		// The plural form, which had no assertion anywhere once the Lab's own count went.
-		await expect(canvas.getByText('2 ratings logged today, counted from tomorrow')).toBeVisible();
+		await expect(canvas.getByText('2 🪫 logged today, counted from tomorrow')).toBeVisible();
 	}}
 />

@@ -3,7 +3,10 @@
 	import { logError } from '$lib/logger';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
-	import { drainPendingLine, labFitLines } from '$lib/presentation/utils/calibration-descriptor';
+	import {
+		buildLabFitLines,
+		describeDrainPending,
+	} from '$lib/presentation/utils/calibration-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import { MeasurementEditors } from '$lib/presentation/utils/measurement-editor.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
@@ -147,7 +150,7 @@
 	// ---------- Presentation helpers ----------
 
 	const fitLines = $derived(
-		labFitLines(
+		buildLabFitLines(
 			{
 				cognitiveDrain: energyPlan.cognitiveDrainFit,
 				physicalDrain: energyPlan.physicalDrainFit,
@@ -163,7 +166,7 @@
 		),
 	);
 
-	const drainPending = $derived(drainPendingLine(observations.pendingDrainLogCount));
+	const drainPending = $derived(describeDrainPending(observations.pendingDrainLogCount));
 
 	// One hue per task, shared by the timeline, the schedule list and the rows.
 	const colors = $derived(seriesColors(energyPlan.energyTasks.map((t) => t.id)));

@@ -832,7 +832,7 @@ test('a rating logged today is named as deferred', async ({ page }) => {
 		}),
 	).toBeVisible();
 
-	await expect(drain.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+	await expect(drain.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible();
 });
 
 /* The 🪫 twin of the past-day ⚡ in flow-log.e2e.ts: stamped with the viewed day, listed
@@ -990,7 +990,7 @@ test('the ranking says how many of today’s ratings it has not counted', async 
 					name: 'Most draining per hour',
 				}),
 			})
-			.getByText('2 ratings logged today, counted from tomorrow'),
+			.getByText('2 🪫 logged today, counted from tomorrow'),
 	).toBeVisible({
 		timeout: 15000,
 	});
@@ -1007,7 +1007,7 @@ test('a rating dropped today leaves the ranking’s line', async ({ page }) => {
 		}),
 	});
 
-	await expect(ranking.getByText('1 rating logged today, counted from tomorrow')).toBeVisible({
+	await expect(ranking.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible({
 		timeout: 15000,
 	});
 

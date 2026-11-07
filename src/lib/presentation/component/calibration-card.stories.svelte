@@ -35,7 +35,7 @@
 		<div class="max-w-sm">
 			<CalibrationCard title={args.title} hint={args.hint}>
 				<div class="mt-text-sm space-y-text-xs text-xs text-ty-silent">
-					<p>1 rating logged today, counted from tomorrow</p>
+					<p>1 🪫 logged today, counted from tomorrow</p>
 					<p>Drain ratings · 7</p>
 				</div>
 			</CalibrationCard>
