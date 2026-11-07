@@ -11,7 +11,7 @@ import {
 	mockObservations,
 	mockSession,
 	restRecord,
-} from '$lib/business/store/energy-lab-store.test-utils.svelte';
+} from '$lib/business/store/layout-store-mock.test-utils.svelte';
 import type { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import type { Task } from '$lib/business/type';

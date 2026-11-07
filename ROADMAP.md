@@ -326,7 +326,7 @@ pinned by "the session length prefills from the stop advisor"). That reading
 is out of the button's sight, and is accepted because it is a length the user
 can retype before starting, never a model input. Nor does the button re-arm on
 a schedule:
-`fitsApplied` compares each param against `round2` of its fit, so a fit that has
+`fitsApplied` compares each param against `roundFit` of its fit, so a fit that has
 stopped moving at two decimals stops asking, and the prompting is heaviest at
 the low log counts where the fit is least worth trusting anyway. Auto-applying
 would also have to overwrite manual slider edits with no provenance
@@ -1314,7 +1314,7 @@ runner-up.
   2026-10-01.** `SessionStore` holds it for the carry count and `DailyPlanStore`
   for the defer line. The second rebuilds the key from two getters and must take
   it before awaiting `readDeferDestination`, and
-  `energy-lab-store.test-utils.svelte.ts` re-spells the key, so its spec checks
+  `layout-store-mock.test-utils.svelte.ts` re-spells the key, so its spec checks
   a copy. `destinationKeyFor`'s doc names "the two stores that hold one" as the
   design: reopen only if that ordering bites.
 - ~~**A9 — the tomorrow moves stash their undo instead of returning it.**~~

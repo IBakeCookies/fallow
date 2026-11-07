@@ -5,6 +5,7 @@ import type {
 	DrainObservationRecord,
 	RestObservationRecord,
 } from '$lib/data/type';
+import type { Undo } from '$lib/business/type';
 import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
@@ -243,7 +244,7 @@ export class EnergyObservationStore {
 	// Hands back the way to put it back, on the contract `deleteFlowLog` documents:
 	// the whole record under its own id and stamp, `undefined` when there is nothing
 	// to offer back. A re-log would be a second session for §8.7 to fit α against.
-	async deleteDrainLog(id: number): Promise<(() => Promise<void>) | undefined> {
+	async deleteDrainLog(id: number): Promise<Undo | undefined> {
 		const dropped = this.#drainObservations.find((observation) => observation.id === id);
 
 		if (!dropped) return undefined;
@@ -343,7 +344,7 @@ export class EnergyObservationStore {
 	// Remove one rest pair; the fitted recovery rate is derived from the
 	// observations, so consumers refit automatically. Undoable on the same contract as
 	// the two above — a re-log would be a second recovery for §8.9's r.
-	async deleteRestLog(id: number): Promise<(() => Promise<void>) | undefined> {
+	async deleteRestLog(id: number): Promise<Undo | undefined> {
 		const dropped = this.#restObservations.find((observation) => observation.id === id);
 
 		if (!dropped) return undefined;
