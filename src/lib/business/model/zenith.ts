@@ -998,11 +998,11 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
 	totalBudget: number,
-	typedSwitchCost: number,
+	unclampedSwitchCost: number,
 	poolCog: number,
 	poolPhys: number,
 ): number[] {
-	const switchCost = clampSwitchCost(typedSwitchCost);
+	const switchCost = clampSwitchCost(unclampedSwitchCost);
 	const n = tasks.length;
 	// The day's funded set is `already started ∪ this plan's subset`, so a plan
 	// that abandons a started task does not get its switch back.
@@ -1580,13 +1580,13 @@ function naiveBlockPlan(
 function naiveBaselineValue(
 	tasks: PooledTaskInput[],
 	totalBudget: number,
-	typedSwitchCost: number,
+	unclampedSwitchCost: number,
 	poolCog: number,
 	poolPhys: number,
 	constants: UserConstants,
 	posterior?: FitPosterior,
 ): number {
-	const switchCost = clampSwitchCost(typedSwitchCost);
+	const switchCost = clampSwitchCost(unclampedSwitchCost);
 	const n = tasks.length;
 
 	const blocksFor = (funded: number): number =>

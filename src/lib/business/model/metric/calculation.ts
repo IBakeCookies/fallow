@@ -1040,13 +1040,14 @@ export function calculateInterleavedOrder<T extends OrderableTask>(
 
 /**
  * A run order as an energy-model schedule: each task's hours in sequence, with
- * a `switchCost` rest gap between consecutive tasks (none when the cost is not
- * positive). How a classic plan is scored under the energy model.
+ * a `switchCost` rest gap between consecutive tasks (none when the floored cost
+ * is zero). How a classic plan is scored under the energy model.
  */
 export function toScheduleBlocks(
 	order: { id: number; suggestedHours: number }[],
-	switchCost: number,
+	unclampedSwitchCost: number,
 ): ScheduleBlock[] {
+	const switchCost = clampSwitchCost(unclampedSwitchCost);
 	const blocks: ScheduleBlock[] = [];
 
 	order.forEach((task, index) => {
