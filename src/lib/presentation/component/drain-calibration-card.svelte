@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import { drainPendingLine } from '$lib/presentation/utils/calibration-descriptor';
+	import { describeDrainPending } from '$lib/presentation/utils/calibration-descriptor';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
 
 	interface Props {
@@ -57,7 +57,7 @@
 
 	{#if pendingLogs > 0}
 		<p class="mt-text-sm text-xs text-ty-silent">
-			{drainPendingLine(pendingLogs)}
+			{describeDrainPending(pendingLogs)}
 		</p>
 	{/if}
 

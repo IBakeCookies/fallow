@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
-import { calibrationRows } from '$lib/presentation/utils/calibration-descriptor';
+import { buildLabFitLines, calibrationRows } from '$lib/presentation/utils/calibration-descriptor';
 
 /** Only the four parameters the rows read; the rest of `EnergyParams` is not the
  *  descriptor's business. */
@@ -531,5 +531,35 @@ describe('calibrationRows', () => {
 				'Recovery rate over the last 3 recorded days: 0.09 /h to 0.11 /h',
 			);
 		});
+	});
+});
+
+describe('buildLabFitLines', () => {
+	// Logs that separate nothing from the default are not a fit of zero, and no logs
+	// at all are not "no signal".
+	it('names logs that carry no signal, and draws no line where there are none', () => {
+		const { cognitiveDrain, physicalDrain, recovery } = unfitted.energy;
+
+		const lines = buildLabFitLines(
+			{
+				cognitiveDrain,
+				physicalDrain,
+				recovery,
+				stopping: unfitted.stopping,
+			},
+			{
+				drain: true,
+				rest: false,
+				stop: false,
+			},
+			'en-US',
+		);
+
+		expect(lines.alphaCog).toEqual({
+			text: 'no informative ratings',
+			hasSignal: false,
+		});
+
+		expect(lines.recoveryRate).toBeUndefined();
 	});
 });

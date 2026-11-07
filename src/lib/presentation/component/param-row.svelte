@@ -1,8 +1,8 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
 	import { cn } from '$lib/presentation/utils';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
+	import type { FitLine } from '$lib/presentation/utils/calibration-descriptor';
 
 	/* One model parameter: what it is called, what it means, and its stepper. Nine of
 	   these make up the Lab's parameter card, and each carries a hint because none of
@@ -21,8 +21,8 @@
 		unit: string;
 		/** Focus tint, where the parameter belongs to one capacity */
 		accent?: string;
-		/** What the user's own logs fit, formatted; `null` when they carry no signal, absent when there are none */
-		fit?: string | null;
+		/** What the user's own logs fit, formatted; absent when there are none */
+		fit?: FitLine;
 		/** The logs that fit has not read yet, named; absent when there are none */
 		pending?: string;
 		class?: string;
@@ -63,12 +63,12 @@
 				</Tooltip.Content>
 			</Tooltip.Root>
 		</Tooltip.Provider>
-		{#if fit !== undefined}
+		{#if fit}
 			<span
 				id="{id}-fit"
-				class={fit === null ? 'text-xs text-ty-silent' : 'text-xs tabular-nums text-info-strong'}
+				class={fit.hasSignal ? 'text-xs tabular-nums text-info-strong' : 'text-xs text-ty-silent'}
 			>
-				{fit ?? m.energy_fit_no_signal()}
+				{fit.text}
 			</span>
 		{/if}
 	</div>

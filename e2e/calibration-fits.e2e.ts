@@ -50,11 +50,11 @@ test('a drain rating logged today is named on both drain rows', async ({ page })
 	await expect(drainChips(page)).toHaveCount(1);
 
 	await expect(page.locator('#alpha-cog-pending')).toHaveText(
-		'1 rating logged today, counted from tomorrow',
+		'1 🪫 logged today, counted from tomorrow',
 	);
 
 	await expect(page.locator('#alpha-phys-pending')).toHaveText(
-		'1 rating logged today, counted from tomorrow',
+		'1 🪫 logged today, counted from tomorrow',
 	);
 });
 
@@ -495,7 +495,7 @@ test('neither moved card offers a reset or a link to the logs', async ({ page })
 	// Both cards are on screen: the counts below would otherwise all be zero for the
 	// wrong reason.
 	await expect(flow.getByText(/1 ⚡ logged today/)).toBeVisible();
-	await expect(drain.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+	await expect(drain.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible();
 
 	await expect(
 		flow.getByRole('link', {
@@ -793,7 +793,7 @@ test('a drain rating dropped on analytics leaves the drain card', async ({ page 
 	await page.goto('/analytics');
 
 	const drain = calibrationCard(page, 'Drain Calibration');
-	await expect(drain.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+	await expect(drain.getByText('1 🪫 logged today, counted from tomorrow')).toBeVisible();
 
 	await page
 		.getByRole('button', {

@@ -19,7 +19,7 @@
 	import { showToast } from '$lib/presentation/utils/toast';
 	import {
 		calibrationRows,
-		drainPendingLine,
+		describeDrainPending,
 	} from '$lib/presentation/utils/calibration-descriptor';
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
@@ -540,7 +540,7 @@
 
 			{#if pendingDrainLogs > 0}
 				<p class="mt-text-sm text-xs text-ty-secondary">
-					{drainPendingLine(pendingDrainLogs)}
+					{describeDrainPending(pendingDrainLogs)}
 				</p>
 			{/if}
 		</div>

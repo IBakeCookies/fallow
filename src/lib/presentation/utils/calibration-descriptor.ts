@@ -10,15 +10,21 @@
    logs names them separately, as the raw rows they are. */
 
 import * as m from '$lib/paraglide/messages.js';
+import { FIT_DECIMALS } from '$lib/business/utils/energy-fit-bounds';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
 
-// Two decimals each, and only for a fit: a default is not an estimate and has no std.
-function fitFigures(isFitted: boolean, value: number, std: number | undefined, locale: string) {
+// Only for a fit: a default is not an estimate and has no std.
+function formatFitFigures(
+	isFitted: boolean,
+	value: number,
+	std: number | undefined,
+	locale: string,
+) {
 	return isFitted
 		? {
-				value: formatDecimals(value, 2, locale),
-				std: formatDecimals(std ?? 0, 2, locale),
+				value: formatDecimals(value, FIT_DECIMALS, locale),
+				std: formatDecimals(std ?? 0, FIT_DECIMALS, locale),
 			}
 		: null;
 }
@@ -58,8 +64,9 @@ export function calibrationRows(
 
 	const f2 = (value: number) => formatDecimals(value, 2, locale);
 	const minutes = (hours: number) => `${Math.round(hours * 60)} ${m.unit_minutes()}`;
-	const perHour = (value: number) => `${f2(value)} ${m.unit_per_hour()}`;
-	const outputPerHour = (value: number) => `${f2(value)} ${m.unit_output_per_hour()}`;
+	const formatFit = (value: number) => formatDecimals(value, FIT_DECIMALS, locale);
+	const perHour = (value: number) => `${formatFit(value)} ${m.unit_per_hour()}`;
+	const outputPerHour = (value: number) => `${formatFit(value)} ${m.unit_output_per_hour()}`;
 
 	// A §5 prequential skill reading arrives signed, positive when the fit was
 	// closer: `spell` gives its size in the row's unit, the pair says the direction.
@@ -99,7 +106,7 @@ export function calibrationRows(
 		std: number | undefined,
 		unit: string,
 	) => {
-		const figures = fitFigures(fit.fitted, value, std, locale);
+		const figures = formatFitFigures(fit.fitted, value, std, locale);
 
 		return figures ? `≈ ${figures.value} ± ${figures.std} ${unit}` : `${f2(value)} ${unit}`;
 	};
@@ -129,18 +136,15 @@ export function calibrationRows(
 
 	// One spelling for both drain rows; the counts can differ, a session that
 	// loaded one reservoir alone being kept for that reservoir only (MATH.md §8.7).
-	const drainEvidence = (count: number, skill: RatingSkill) =>
-		evidenceWithRatingSkill(
-			pending.drain > 0
-				? m.ana_model_note_drain_pending({
-						count,
-						pending: pending.drain,
-					})
-				: m.ana_model_note_days({
-						count,
-					}),
-			skill,
-		);
+	const drainEvidence = (count: number, skill: RatingSkill) => {
+		const days = m.ana_model_note_days({
+			count,
+		});
+
+		const drainPending = describeDrainPending(pending.drain);
+
+		return evidenceWithRatingSkill(drainPending ? `${days} · ${drainPending}` : days, skill);
+	};
 
 	const series = calibration.trend;
 	const flowLabel = m.ana_model_flow();
@@ -243,7 +247,7 @@ export function calibrationRows(
 }
 
 /** The 🪫 ratings logged today, which α reads from tomorrow; undefined while there are none. */
-export function drainPendingLine(count: number): string | undefined {
+export function describeDrainPending(count: number): string | undefined {
 	if (count === 0) return undefined;
 
 	return count === 1
@@ -253,8 +257,14 @@ export function drainPendingLine(count: number): string | undefined {
 			});
 }
 
-/** The line under each fitted Lab stepper: undefined with no logs, null where they carry no signal. */
-export function labFitLines(
+/** The line under a fitted Lab stepper; without a signal it names that instead of a number. */
+export interface FitLine {
+	text: string;
+	hasSignal: boolean;
+}
+
+/** The line under each fitted Lab stepper: undefined with no logs. */
+export function buildLabFitLines(
 	fits: {
 		cognitiveDrain: CalibrationSnapshot['energy']['cognitiveDrain'];
 		physicalDrain: CalibrationSnapshot['energy']['physicalDrain'];
@@ -263,7 +273,7 @@ export function labFitLines(
 	},
 	hasLogs: { drain: boolean; rest: boolean; stop: boolean },
 	locale: string,
-): Record<'alphaCog' | 'alphaPhys' | 'recoveryRate' | 'freeTimeValue', string | null | undefined> {
+): Record<'alphaCog' | 'alphaPhys' | 'recoveryRate' | 'freeTimeValue', FitLine | undefined> {
 	const line = (
 		hasLog: boolean,
 		fit: { fitted: boolean; usedCount: number },
@@ -273,15 +283,20 @@ export function labFitLines(
 	) => {
 		if (!hasLog) return undefined;
 
-		const figures = fitFigures(fit.fitted, value, std, locale);
+		const figures = formatFitFigures(fit.fitted, value, std, locale);
 
-		return (
-			figures &&
-			message({
-				...figures,
-				count: fit.usedCount,
-			})
-		);
+		return figures
+			? {
+					text: message({
+						...figures,
+						count: fit.usedCount,
+					}),
+					hasSignal: true,
+				}
+			: {
+					text: m.energy_fit_no_signal(),
+					hasSignal: false,
+				};
 	};
 
 	const { cognitiveDrain, physicalDrain, recovery, stopping } = fits;
